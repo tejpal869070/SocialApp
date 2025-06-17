@@ -13,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons"; // For icons
 import verifiedImage from "../assets/photos/verified.webp";
 import ProfileImagesGrid from "../componentes/ProfileImagesGrid";
 import { myPostImages } from "../assets/Data/myPostImages";
-import bg2 from "../assets/photos/app-bg-2.jpg";
+import bg2 from "../assets/photos/app-bg-6.jpg";
 import { StatusBar } from "expo-status-bar";
 
 const ProfileScreen = ({ navigation }) => {
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 18,
     fontWeight: 500,
-    color: "#008eff",
+    color: "white",
   },
   username: {
     fontSize: 14,

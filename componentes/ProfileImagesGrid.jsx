@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
     width: imageSize,
     height: imageSize,
     borderWidth: 1,
-    borderColor: "#fff",
+    borderColor: "#ffcece",
   },
 });
 

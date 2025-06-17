@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f5f5",
   },
   header: {
-    backgroundColor: "#1F2A44",
+    backgroundColor: "#FF5555",
     padding: 20,
     paddingTop: 40,
     borderBottomWidth: 1,
@@ -171,22 +171,15 @@ const styles = StyleSheet.create({
     color: "#FF5555",
   },
   listContainer: {
-    paddingBottom: 40,
-    marginTop: 12,
+    paddingBottom: 40, 
   },
   chatItem: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    padding: 15,
-    marginVertical: 5,
-    marginHorizontal: 10,
-    borderRadius: 15,
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
+    padding: 15,   
+    borderBottomWidth : 1,
+    borderColor : "gray"
   },
   profilePic: {
     width: 50,

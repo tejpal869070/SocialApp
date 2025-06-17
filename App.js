@@ -17,6 +17,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthProvider } from "./controller/context";
 import AllChatsScreen from "./screens/AllChatsScreen";
 import MyMatches from "./screens/MyMatches";
+import TravellingUser from "./screens/TravellingUser";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -31,6 +32,7 @@ function MainApp() {
           else if (route.name === "Chats") iconName = "notifications";
           else if (route.name === "Match") iconName = "star";
           else if (route.name === "Profile") iconName = "person";
+          else if (route.name === "Travel") iconName = "car";
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: "#e91e63",
@@ -38,13 +40,18 @@ function MainApp() {
       })}
     >
       <Tab.Screen
-        name="Home"
+        name="Home" 
         component={HomeScreen}
         options={{ headerShown: false }}
       />
       <Tab.Screen
         name="Chats"
         component={AllChatsScreen}
+        options={{ headerShown: false }}
+      />
+      <Tab.Screen
+        name="Travel"
+        component={TravellingUser}
         options={{ headerShown: false }}
       />
       <Tab.Screen
@@ -95,6 +102,11 @@ export default function App() {
           }}
         >
           <Stack.Screen
+            name="Start"
+            component={StartScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
             name="Main"
             component={MainApp}
             options={{ headerShown: false }}
@@ -104,11 +116,7 @@ export default function App() {
             component={MessagesScreen}
             options={{ title: "Messages", headerShown: false }}
           />
-          <Stack.Screen
-            name="Start"
-            component={StartScreen}
-            options={{ headerShown: false }}
-          />
+
           <Stack.Screen
             name="Login"
             component={LoginScreen}

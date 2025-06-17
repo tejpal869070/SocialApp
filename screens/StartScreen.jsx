@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, ImageBackground, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -31,11 +31,11 @@ export default function StartScreen() {
   }, [navigation]);
 
   return (
-    <View style={styles.container}>
-      <Ionicons name="heart-circle" size={100} color="#e91e63" />
+    <ImageBackground source={require("../assets/photos/app-bg-3.jpg")} style={styles.container}>
+      <Ionicons name="heart-circle" size={100} color="#e91e63" /> 
       <Text style={styles.title}>SocialApp</Text>
       <ActivityIndicator size="large" color="#e91e63" style={styles.loader} />
-    </View>
+    </ImageBackground>
   );
 }
 

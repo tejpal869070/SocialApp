@@ -18,6 +18,11 @@ import {
 import { profiles } from "../assets/Data/DummyProfiles";
 import loveImage from "../assets/photos/love-png-img.png";
 import bg1 from "../assets/photos/app-bg-1.jpg";
+import Icon from "react-native-vector-icons/Ionicons";
+import SideNavBar from "../componentes/SideNavBar";
+import { Ionicons } from "@expo/vector-icons";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import ProfileFilter from "../componentes/ProfileFilter";
 
 const { width, height } = Dimensions.get("window");
 
@@ -34,6 +39,26 @@ const HomeScreen = ({ navigation }) => {
   const likeOverlayOpacity = useRef(new Animated.Value(0)).current;
 
   const currentProfile = profiles[currentProfileIndex];
+
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const sidebarAnim = useRef(new Animated.Value(-width)).current;
+
+  const openSidebar = () => {
+    setSidebarOpen(true);
+    Animated.timing(sidebarAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closeSidebar = () => {
+    Animated.timing(sidebarAnim, {
+      toValue: -width,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => setSidebarOpen(false));
+  };
 
   const animateImageChange = (newIndex) => {
     Animated.timing(imageOpacity, {
@@ -159,13 +184,16 @@ const HomeScreen = ({ navigation }) => {
           ]}
         />
         <GestureHandlerRootView>
-          <View style={styles.header}>
+          <View style={styles.navbar}>
+            <SideNavBar />
             <Image
               source={{
                 uri: "https://via.placeholder.com/100x40/FF5555/FFFFFF?text=Tinder",
               }}
               style={styles.logo}
+              resizeMode="contain"
             />
+            <ProfileFilter />
           </View>
 
           <PanGestureHandler onGestureEvent={onPanGestureEvent}>
@@ -181,7 +209,7 @@ const HomeScreen = ({ navigation }) => {
                 />
                 {/* Bottom Info Section */}
                 <View style={styles.bottomInfoContainer}>
-                  <Text style={styles.name}>{currentProfile.name}</Text>{" "}
+                  <Text style={styles.name}>{currentProfile.name}</Text>
                   <Text style={styles.distance}>
                     Age : {currentProfile.age}
                   </Text>
@@ -423,8 +451,53 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   closeButtonText: {
-    color: "#666",
+    color: "#666", 
     fontSize: 16,
+  },
+  navbar: {
+    height: 80,
+    flexDirection: "row", 
+    justifyContent: "space-between",
+    alignItems: "center", 
+    backgroundColor: "#FF5555",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    zIndex: 10, 
+  },
+  sidebarBackdrop: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    zIndex: 99,
+  },
+  sidebar: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: width * 0.7,
+    backgroundColor: "#fff",
+    paddingTop: 60,
+    paddingHorizontal: 20,
+  },
+  sidebarTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    marginBottom: 20,
+  },
+  sidebarItem: {
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  sidebarText: {
+    fontSize: 18,
   },
 });
 

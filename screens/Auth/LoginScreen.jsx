@@ -40,13 +40,13 @@ const LoginScreen = ({ navigation }) => {
         keyboardVerticalOffset={60}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerStyle={{ flexGrow: 1 }} 
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.container}>
             {/* Header Section */}
             <View style={styles.header}>
-              <Text style={styles.headerText}>Coffee house</Text>
+              <Text style={styles.headerText}>Find Your Love</Text>
               <Image source={logo} style={styles.logo} />
             </View>
 
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    backgroundColor: "#2f2f2f",
+    backgroundColor: "#1F2A44",
     height: 180,
     justifyContent: "center",
     alignItems: "center",
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   },
   headerText: {
     color: "#fff",
-    fontSize: 34,
+    fontSize: 32,
     fontWeight: "bold",
     marginBottom: 30,
   },
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   signInButton: {
-    backgroundColor: "#333",
+    backgroundColor: "#1F2A44",
     paddingVertical: 15,
     borderRadius: 30,
     alignItems: "center",
