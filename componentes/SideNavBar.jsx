@@ -23,17 +23,17 @@ const SideNavBar = ({ navigation }) => {
     Animated.timing(slideAnim, {
       toValue: isOpen ? -SIDEBAR_WIDTH : 0,
       duration: 300,
-      useNativeDriver: true,
+      useNativeDriver: true, 
     }).start();
     setIsOpen(!isOpen);
   };
 
   const menuItems = [
-    { name: "Profile", icon: "person", link: "walletScreen" },
+    { name: "Profile", icon: "person", link: "Start" },
 
-    { name: "Settings", icon: "settings-outline", link: "walletScreen" },
-    { name: "Logout", icon: "log-out-outline", link: "walletScreen" },
-    { name: "Contact us", icon: "call-outline", link: "walletScreen" },
+    { name: "Settings", icon: "settings-outline", link: "Start" },
+    { name: "Logout", icon: "log-out-outline", link: "Start" },
+    { name: "Contact us", icon: "call-outline", link: "Start" },
   ];
 
   return (
@@ -59,7 +59,7 @@ const SideNavBar = ({ navigation }) => {
         {/* Menu Items */}
         {menuItems.map((item, index) => (
           <TouchableOpacity
-            onPress={() => navigation.navigate("Wallet")}
+            onPress={() => navigation.navigate(item.link)}
             key={index}
             style={styles.menuItem}
           >
@@ -123,12 +123,12 @@ const styles = StyleSheet.create({
   },
   sidebar: {
     position: "absolute",
-    top: 0,
+    top: 80,
     left: 0,
     width: SIDEBAR_WIDTH,
     height: height,
     backgroundColor: "#fff",
-    paddingTop: 60,
+    paddingTop: 20,
     paddingHorizontal: 20,
     zIndex: 999,
     shadowColor: "#000",

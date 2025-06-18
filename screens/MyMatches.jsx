@@ -10,37 +10,51 @@ import {
   ImageBackground,
   TextInput,
 } from "react-native";
-import { matches } from "../assets/Data/Matches";
+import { matches } from "../assets/Data/Matches"; 
+import ProfilePopup from "../componentes/ProfilePopup";
 
 const { width } = Dimensions.get("window");
-const itemSpacing = 10; // Margin between items
+const itemSpacing = 10;
 const itemsPerRow = 4;
-const totalSpacing = (itemsPerRow + 1) * itemSpacing; // Total spacing per row (including left and right)
-const itemWidth = (width - totalSpacing) / itemsPerRow; // Calculate width for each item
+const totalSpacing = (itemsPerRow + 1) * itemSpacing;
+const itemWidth = (width - totalSpacing) / itemsPerRow;
 
 const MyMatches = ({ navigation }) => {
   const [searchText, setSearchText] = useState("");
+  const [selectedMatch, setSelectedMatch] = useState(null);
+  const [isModalVisible, setModalVisible] = useState(false);
 
-  // Filter matches based on search text
   const filteredMatches = matches.filter((match) =>
     match.name.toLowerCase().includes(searchText.toLowerCase())
   );
 
+  const openProfile = (match) => {
+    setSelectedMatch(match);
+    setModalVisible(true);
+  };
+
+  const closeProfile = () => {
+    setModalVisible(false);
+    setSelectedMatch(null);
+  };
+
   const renderMatchItem = ({ item }) => (
-    <TouchableOpacity style={[styles.matchItem, { width: itemWidth }]}>
-      <Image source={{ uri: item.image }} style={styles.matchImage} />
+    <TouchableOpacity
+      style={[styles.matchItem, { width: itemWidth }]}
+      onPress={() => openProfile(item)}
+    >
+      <Image source={{ uri: item.images[0] }} style={styles.matchImage} />
       <Text style={styles.matchName}>{item.name}</Text>
     </TouchableOpacity>
   );
 
   return (
     <ImageBackground
-      source={require("../assets/photos/app-bg-3.jpg")}
+      source={require("../assets/photos/app-bg-7.jpg")}
       style={styles.container}
     >
-      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>Matches</Text> 
+        <Text style={styles.headerText}>Matches</Text>
         <View style={styles.searchContainer}>
           <TextInput
             placeholder="Search matches..."
@@ -51,49 +65,45 @@ const MyMatches = ({ navigation }) => {
           />
         </View>
       </View>
-      {/* Search Field */}
 
-      {/* Matches Grid */}
       <FlatList
         data={filteredMatches}
         renderItem={renderMatchItem}
         keyExtractor={(item) => item.id}
-        numColumns={itemsPerRow} // 3 items per row
+        numColumns={itemsPerRow}
         contentContainerStyle={styles.gridContainer}
         showsVerticalScrollIndicator={false}
+      />
+
+      {/* Modular Popup */}
+      <ProfilePopup
+        isVisible={isModalVisible}
+        match={selectedMatch}
+        onClose={closeProfile}
       />
     </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-  },
+  container: { flex: 1 },
   header: {
     backgroundColor: "#FF5555",
     padding: 20,
     paddingTop: 40,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
   },
   headerText: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 20,
+    fontWeight: "bold",
     color: "#fff",
   },
-  searchContainer: {
-    marginTop: 10,
-  },
+  searchContainer: { marginTop: 10 },
   searchInput: {
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    backgroundColor: "rgba(255,255,255,0.9)",
     borderRadius: 25,
     paddingVertical: 10,
     paddingHorizontal: 20,
     fontSize: 16,
-    color: "#333",
-    elevation: 2,
   },
   gridContainer: {
     paddingHorizontal: itemSpacing,
@@ -101,27 +111,20 @@ const styles = StyleSheet.create({
   },
   matchItem: {
     alignItems: "center",
-    margin: itemSpacing / 2, // Half the spacing for each side
-    borderRadius: 15,
-    padding: 10,
-    backgroundColor: "#ffffffcc",
-    // elevation: 3,
-    // shadowColor: "#000",
-    // shadowOffset: { width: 0, height: 2 },
-    // shadowOpacity: 0.1,
-    // shadowRadius: 5,
+    margin: itemSpacing / 2,
+    borderRadius: 12,
+    padding: 6,
+    backgroundColor: "#fff",
+    elevation: 3,
   },
   matchImage: {
     width: "100%",
-    height: undefined,
-    aspectRatio: 1, // Ensure square image
-    borderRadius: 50, // Half of the width for a circular image
-    marginBottom: 10,
-    borderWidth: 2,
-    borderColor: "#FF5555",
+    aspectRatio: 1,
+    borderRadius: 8,
+    marginBottom: 4,
   },
   matchName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
     color: "#333",
     textAlign: "center",

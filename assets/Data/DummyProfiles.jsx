@@ -7,9 +7,8 @@ export const profiles = [
     distance: "6 km",
     images: [
       "https://img.freepik.com/free-photo/young-beautiful-girl-posing-black-leather-jacket-park_1153-8104.jpg?semt=ais_hybrid&w=740",
-      "https://cdn.pixabay.com/photo/2023/04/01/16/00/ai-generated-girl-1234568_960_720.jpg",
-      "https://cdn.pixabay.com/photo/2023/04/01/16/00/ai-generated-girl-1234569_960_720.jpg",
-      "https://cdn.pixabay.com/photo/2023/04/01/16/00/ai-generated-girl-1234570_960_720.jpg",
+      "https://i.pinimg.com/736x/58/d0/83/58d0834cb85f16336a66b41d06c0162f.jpg",
+      "https://img.freepik.com/premium-photo/young-stylish-woman-wearing-black-coat-pants-handbag-walking-city-street-fall-season-winter-fashion-elegant-look-plus-size-model_137237-2530.jpg?semt=ais_hybrid&w=740",
     ],
   },
   {
@@ -19,7 +18,7 @@ export const profiles = [
     location: "Delhi",
     distance: "10 km",
     images: [
-      "https://i.pinimg.com/736x/58/d0/83/58d0834cb85f16336a66b41d06c0162f.jpg", 
+      "https://i.pinimg.com/736x/58/d0/83/58d0834cb85f16336a66b41d06c0162f.jpg",
       "https://cdn.pixabay.com/photo/2023/04/01/16/00/ai-generated-girl-1234572_960_720.jpg",
       "https://cdn.pixabay.com/photo/2023/04/01/16/00/ai-generated-girl-1234573_960_720.jpg",
       "https://cdn.pixabay.com/photo/2023/04/01/16/00/ai-generated-girl-1234574_960_720.jpg",

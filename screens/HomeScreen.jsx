@@ -10,6 +10,7 @@ import {
   Dimensions,
   SafeAreaView,
   ImageBackground,
+  Pressable,
 } from "react-native";
 import {
   GestureHandlerRootView,
@@ -17,12 +18,11 @@ import {
 } from "react-native-gesture-handler";
 import { profiles } from "../assets/Data/DummyProfiles";
 import loveImage from "../assets/photos/love-png-img.png";
-import bg1 from "../assets/photos/app-bg-1.jpg";
-import Icon from "react-native-vector-icons/Ionicons";
+import bg1 from "../assets/photos/app-bg-7.jpg";
 import SideNavBar from "../componentes/SideNavBar";
-import { Ionicons } from "@expo/vector-icons";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
 import ProfileFilter from "../componentes/ProfileFilter";
+import MatchPopup from "../componentes/HaveMatch";
+import crown from "../assets/photos/crown.png";
 
 const { width, height } = Dimensions.get("window");
 
@@ -31,6 +31,7 @@ const HomeScreen = ({ navigation }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [liked, setLiked] = useState(false);
   const [showMessagePopup, setShowMessagePopup] = useState(false);
+  const [matched, setMatched] = useState(false);
 
   const likeTranslateY = useRef(new Animated.Value(height)).current;
   const messagePopupAnim = useRef(new Animated.Value(height)).current;
@@ -40,25 +41,7 @@ const HomeScreen = ({ navigation }) => {
 
   const currentProfile = profiles[currentProfileIndex];
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const sidebarAnim = useRef(new Animated.Value(-width)).current;
-
-  const openSidebar = () => {
-    setSidebarOpen(true);
-    Animated.timing(sidebarAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const closeSidebar = () => {
-    Animated.timing(sidebarAnim, {
-      toValue: -width,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => setSidebarOpen(false));
-  };
 
   const animateImageChange = (newIndex) => {
     Animated.timing(imageOpacity, {
@@ -112,40 +95,44 @@ const HomeScreen = ({ navigation }) => {
   const handleLike = () => {
     setLiked(true);
 
-    // Animate red overlay opacity and love image in parallel
-    Animated.parallel([
-      Animated.timing(likeOverlayOpacity, {
-        toValue: 0.6,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
+    if (currentProfile.location === "Jaipur") {
+      setMatched(true);
+    } else {
+      // Animate red overlay opacity and love image in parallel
       Animated.parallel([
-        Animated.timing(likeTranslateY, {
-          toValue: height / 1.5,
-          duration: 600,
+        Animated.timing(likeOverlayOpacity, {
+          toValue: 0.6,
+          duration: 1000,
           useNativeDriver: true,
         }),
-        Animated.timing(likeScale, {
-          toValue: 2.5,
-          duration: 600,
+        Animated.parallel([
+          Animated.timing(likeTranslateY, {
+            toValue: height / 1.5,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+          Animated.timing(likeScale, {
+            toValue: 2.5,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start(() => {
+        // Hide love image and fade out red overlay
+        Animated.timing(likeOverlayOpacity, {
+          toValue: 0,
+          duration: 300,
           useNativeDriver: true,
-        }),
-      ]),
-    ]).start(() => {
-      // Hide love image and fade out red overlay
-      Animated.timing(likeOverlayOpacity, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start(() => {
-        setLiked(false);
-        likeTranslateY.setValue(height);
-        likeScale.setValue(0.5);
+        }).start(() => {
+          setLiked(false);
+          likeTranslateY.setValue(height);
+          likeScale.setValue(0.5);
 
-        setCurrentProfileIndex((currentProfileIndex + 1) % profiles.length);
-        setCurrentImageIndex(0);
+          setCurrentProfileIndex((currentProfileIndex + 1) % profiles.length);
+          setCurrentImageIndex(0);
+        });
       });
-    });
+    }
   };
 
   const handleDislike = () => {
@@ -185,7 +172,7 @@ const HomeScreen = ({ navigation }) => {
         />
         <GestureHandlerRootView>
           <View style={styles.navbar}>
-            <SideNavBar />
+            <SideNavBar navigation={navigation} />
             <Image
               source={{
                 uri: "https://via.placeholder.com/100x40/FF5555/FFFFFF?text=Tinder",
@@ -193,6 +180,12 @@ const HomeScreen = ({ navigation }) => {
               style={styles.logo}
               resizeMode="contain"
             />
+            <Pressable
+              onPress={() => navigation.navigate("Plans")}
+              style={{ position: "absolute", right: 60, top: 35 }}
+            >
+              <Image source={crown} style={{ width: 30, height: 30 }} />
+            </Pressable>
             <ProfileFilter />
           </View>
 
@@ -239,16 +232,34 @@ const HomeScreen = ({ navigation }) => {
               <Text style={styles.buttonText}>
                 <Image
                   style={{ width: 37, height: 37 }}
-                  source={require("../assets/photos/user-avatar.png")}
+                  source={require("../assets/photos/chat-bubble.png")}
                 />
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.button, { width: 90, height: 90 }]}
-              onPress={handleLike}
+            <View
+              style={{
+                display: "flex",
+                flexDirection: "col",
+                gap: 6,
+                justifyContent: "center",
+                alignItems: "center",
+              }}
             >
-              <Text style={[styles.buttonText, { fontSize: 50 }]}>❤️</Text>
-            </TouchableOpacity>
+              <TouchableOpacity style={styles.button} onPress={handleMessage}>
+                <Text style={styles.buttonText}>
+                  <Image
+                    style={{ width: 40, height: 40 }}
+                    source={require("../assets/photos/user.png")}
+                  />
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, { width: 90, height: 90 }]}
+                onPress={handleLike}
+              >
+                <Text style={[styles.buttonText, { fontSize: 50 }]}>❤️</Text>
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity style={styles.button} onPress={handleDislike}>
               <Text style={styles.buttonText}>❌</Text>
@@ -269,6 +280,19 @@ const HomeScreen = ({ navigation }) => {
             >
               <Image source={loveImage} style={{ width: 100, height: 100 }} />
             </Animated.View>
+          )}
+
+          {/* if match then show */}
+          {liked && matched && (
+            <MatchPopup
+              onClose={() => {
+                setMatched(false);
+                setCurrentProfileIndex(
+                  (currentProfileIndex + 1) % profiles.length
+                );
+                setCurrentImageIndex(0);
+              }}
+            />
           )}
 
           {showMessagePopup && (
@@ -451,21 +475,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   closeButtonText: {
-    color: "#666", 
+    color: "#666",
     fontSize: 16,
   },
   navbar: {
     height: 80,
-    flexDirection: "row", 
+    flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center", 
+    alignItems: "center",
     backgroundColor: "#FF5555",
     elevation: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
-    zIndex: 10, 
+    zIndex: 10,
   },
   sidebarBackdrop: {
     position: "absolute",

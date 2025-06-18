@@ -54,11 +54,11 @@ const UserCard = ({ user, isBetweenCities }) => {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.detailButton} onPress={toggleDetail}>
+      {/* <TouchableOpacity style={styles.detailButton} onPress={toggleDetail}>
         <Text style={styles.detailButtonText}>
           {showDetail ? "Hide Details" : "Show Details"}
         </Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       {showDetail && (
         <View style={styles.detailContainer}>
@@ -188,9 +188,7 @@ const styles = StyleSheet.create({
     elevation: 4,
     borderRadius: 10,
     margin: 6,
-    padding: 15,
-    borderWidth: 1,
-    borderColor: "#c3c3c3",
+    padding: 15, 
   },
   detailButton: {
     backgroundColor: "#f3f3f3",

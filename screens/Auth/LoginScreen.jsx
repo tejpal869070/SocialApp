@@ -11,9 +11,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
+  ImageBackground,
 } from "react-native";
 import logo from "../../assets/photos/logo.png";
 import { StatusBar } from "expo-status-bar";
+import bg1 from "../../assets/photos/app-bg-7.jpg";
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -33,85 +35,87 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-        keyboardVerticalOffset={60}
-      >
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }} 
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.container}>
-            {/* Header Section */}
-            <View style={styles.header}>
-              <Text style={styles.headerText}>Find Your Love</Text>
-              <Image source={logo} style={styles.logo} />
-            </View>
-
-            {/* Login Form Section */}
-            <View style={styles.formContainer}>
-              <Text style={styles.loginText}>Login</Text>
-
-              {/* Email Input */}
-              <Text style={styles.label}>Email</Text>
-              <TextInput
-                style={[styles.input]}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Email"
-                keyboardType="email-address"
-                placeholderTextColor="#999"
-                autoComplete="off"
-                importantForAutofill="no"
-                textContentType="emailAddress"
-              />
-
-              {/* Password Input */}
-              <Text style={styles.label}>Password</Text>
-
-              <TextInput
-                style={[styles.input]}
-                value={password}
-                onChangeText={setPassword}
-                placeholder="********"
-                secureTextEntry
-                placeholderTextColor="#999"
-                autoComplete="off"
-                importantForAutofill="no"
-                textContentType="password"
-              />
-
-              {/* Links */}
-              <View style={styles.linksContainer}>
-                <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
-                  <Text style={styles.linkText}>Forget password ?</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
-                  <Text style={styles.linkText}>Create an account</Text>
-                </TouchableOpacity>
+    <ImageBackground source={bg1} style={styles.safeArea}>
+      <SafeAreaView style={{ flex: 1 }}>
+        <KeyboardAvoidingView style={{ flex: 1 }}>
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.container}>
+              {/* Header Section */}
+              <View style={styles.header}>
+                <Text style={styles.headerText}>Find Your Love</Text>
+                <Image source={logo} style={styles.logo} />
               </View>
 
-              {/* Sign In Button */}
-              <TouchableOpacity
-                style={styles.signInButton}
-                onPress={handleSignIn}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.signInText}>Sign in</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+              {/* Login Form Section */}
+              <View style={styles.formContainer}>
+                <Text style={styles.loginText}>Login</Text>
 
-      <StatusBar style="light" />
-    </SafeAreaView>
+                {/* Email Input */}
+                <Text style={styles.label}>Email</Text>
+                <TextInput
+                  style={[styles.input]}
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="Email"
+                  keyboardType="email-address"
+                  placeholderTextColor="#999"
+                  autoComplete="off"
+                  importantForAutofill="no"
+                  textContentType="emailAddress"
+                />
+
+                {/* Password Input */}
+                <Text style={styles.label}>Password</Text>
+
+                <TextInput
+                  style={[styles.input]}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="********"
+                  secureTextEntry
+                  placeholderTextColor="#999"
+                  autoComplete="off"
+                  importantForAutofill="no"
+                  textContentType="password"
+                />
+
+                {/* Links */}
+                <View style={styles.linksContainer}>
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate("SignUp")}
+                  >
+                    <Text style={styles.linkText}>Forget password ?</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate("SignUp")}
+                  >
+                    <Text style={styles.linkText}>Create an account</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Sign In Button */}
+                <TouchableOpacity
+                  style={styles.signInButton}
+                  onPress={handleSignIn}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.signInText}>Sign in</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+
+        <StatusBar style="light" />
+      </SafeAreaView>
+    </ImageBackground>
   );
 };
 
@@ -123,7 +127,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    backgroundColor: "#1F2A44",
+    backgroundColor: "#2f2f2f",
     height: 180,
     justifyContent: "center",
     alignItems: "center",
@@ -183,7 +187,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   signInButton: {
-    backgroundColor: "#1F2A44",
+    backgroundColor: "#ff4081",
     paddingVertical: 15,
     borderRadius: 30,
     alignItems: "center",

@@ -1,286 +1,219 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
-  Image,
-  TouchableOpacity,
   StyleSheet,
+  Image,
   ScrollView,
-  ImageBackground,
+  TouchableOpacity,
   SafeAreaView,
+  ImageBackground,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons"; // For icons
-import verifiedImage from "../assets/photos/verified.webp";
-import ProfileImagesGrid from "../componentes/ProfileImagesGrid";
-import { myPostImages } from "../assets/Data/myPostImages";
-import bg2 from "../assets/photos/app-bg-6.jpg";
-import { StatusBar } from "expo-status-bar";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 
-const ProfileScreen = ({ navigation }) => {
-  const [activeTab, setActiveTab] = useState("My account");
+const ProfileScreen = () => {
+  const user = {
+    name: "Ahmad Nawaz Ali",
+    username: "@ahmad_nawaz_ali",
+    followers: "210",
+    following: "960K",
+    birthdate: "21 Sep 2001",
+    gender: "Male",
+    company: "Product Designer",
+    phone: "+92 302 314 5245",
+    email: "info@qampt.com",
+    website: "www.qampt.com",
+    languages: ["English"],
+    places: ["Lahore"],
+    interests: ["Traveling", "Adventure", "Friendships"],
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Profile Section */}
-      <ImageBackground source={bg2} style={styles.profileSection}>
-        <View style={styles.qrContainer}>
-          <View
-            style={{
-              width: "30%",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
+    <SafeAreaView style={styles.safeArea}>
+      <LinearGradient colors={["#edf1f7", "#dbeafe"]} style={styles.container}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          {/* Profile Header */}
+          <ImageBackground source={require("../assets/photos/app-bg-6.jpg")} style={styles.header}>
             <Image
-              source={{
-                uri: "https://image.winudf.com/v2/image1/bmV0LndsbHBwci5ib3lzX3dhbGxwYXBlcl9zY3JlZW5fMF8xNjU2MzQ2NzU4XzAyMQ/screen-0.jpg?fakeurl=1&type=.jpg",
-              }} // Placeholder for QR code
-              style={styles.qrCode}
+              source={{ uri: "https://randomuser.me/api/portraits/men/1.jpg" }}
+              style={styles.profileImage}
             />
+            <Text style={styles.name}>{user.name}</Text>
+            <Text style={styles.username}>{user.username}</Text>
+          </ImageBackground>
+
+          {/* Personal Info */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Personal Info</Text>
+            <View style={styles.infoItem}>
+              <Ionicons name="calendar-outline" size={20} color="#888" />
+              <Text style={styles.infoText}>
+                Date of Birth: {user.birthdate}
+              </Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Ionicons name="person-outline" size={20} color="#888" />
+              <Text style={styles.infoText}>Gender: {user.gender}</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Ionicons name="call-outline" size={20} color="#888" />
+              <Text style={styles.infoText}>Phone: {user.phone}</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Ionicons name="mail-outline" size={20} color="#888" />
+              <Text style={styles.infoText}>Email: {user.email}</Text>
+            </View>
           </View>
-          <View style={{ width: "65%" }}>
-            <View
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 4,
-              }}
-            >
-              <Text style={styles.name}>Tarun Soni </Text>
-              <Image
-                source={verifiedImage}
-                alt="iconss"
-                style={{ width: 18, height: 18 }}
+
+          {/* Languages */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Languages</Text>
+            {user.languages.map((lang, index) => (
+              <Text key={index} style={styles.infoText}>
+                {lang}
+              </Text>
+            ))}
+          </View>
+
+          {/* Places */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Places</Text>
+            {user.places.map((place, index) => (
+              <Text key={index} style={styles.infoText}>
+                {place}
+              </Text>
+            ))}
+          </View>
+
+          {/* Interests */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Interests</Text>
+            {user.interests.map((interest, index) => (
+              <Text key={index} style={styles.infoText}>
+                {interest}
+              </Text>
+            ))}
+          </View>
+
+          {/* Settings */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Settings</Text>
+            <TouchableOpacity style={styles.settingsItem}>
+              <Ionicons name="shield-outline" size={20} color="#666" />
+              <Text style={styles.infoText}>Privacy</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.settingsItem}>
+              <Ionicons
+                name="information-circle-outline"
+                size={20}
+                color="#666"
               />
-            </View>
-            <View style={styles.detailsContainer}>
-              <View style={styles.detailItem}>
-                <Text style={styles.detailText}>52</Text>
-                <Text style={styles.detailTextTitle}>Posts</Text>
-              </View>
-              <View style={styles.detailItem}>
-                <Text style={styles.detailText}>4M</Text>
-                <Text style={styles.detailTextTitle}>Followers</Text>
-              </View>
-              <View style={styles.detailItem}>
-                <Text style={styles.detailText}>1.2K</Text>
-                <Text style={styles.detailTextTitle}>Following</Text>
-              </View>
-            </View>
+              <Text style={styles.infoText}>Information</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.settingsItem}>
+              <Ionicons name="log-out-outline" size={20} color="#666" />
+              <Text style={styles.infoText}>Log out</Text>
+            </TouchableOpacity>
           </View>
-        </View>
-
-        {/* Tabs */}
-        <View style={styles.tabContainer}>
-          <TouchableOpacity
-            style={[styles.tab]}
-            onPress={() => setActiveTab("My account")}
-          >
-            <Text style={[styles.tabText]}>Edit Profile</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab]}
-            onPress={() => setActiveTab("Public profile")}
-          >
-            <Text style={[styles.tabText]}>Share Profile</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab]}
-            onPress={() => setActiveTab("Public profile")}
-          >
-            <Text style={[styles.tabText]}>Post +</Text>
-          </TouchableOpacity>
-        </View>
-      </ImageBackground>
-      {/* User Details */}
-
-      {/* images grid / posts */}
-      <ScrollView  >
-        <ProfileImagesGrid images={myPostImages} />
-      </ScrollView>
-
-      {/* Snapchat+ Section */}
-      {/* <TouchableOpacity style={styles.section}>
-        <View style={styles.sectionIcon}>
-          <Ionicons name="star" size={24} color="#FFD700" />
-        </View>
-        <View style={styles.sectionContent}>
-          <Text style={styles.sectionTitle}>Snapchat+</Text>
-          <Text style={styles.sectionSubtitle}>
-            Snap modes, Instant Streaks and more!
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={24} color="#fff" />
-      </TouchableOpacity> */}
-
-      <StatusBar style="dark" />
+        </ScrollView>
+      </LinearGradient>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#edf1f7",
+  },
   container: {
     flex: 1,
-    // backgroundColor : "black"
+  },
+  scrollContent: {
+    paddingBottom: 30,
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 20,
-    paddingTop: 40,
-  },
-  headerIcons: {
-    flexDirection: "row",
     alignItems: "center",
+    paddingVertical: 30,
+    backgroundColor: "white",
+    marginBottom: 15,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  notificationDot: {
-    position: "absolute",
-    top: -2,
-    right: -2,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#FF5555",
-  },
-  profileSection: {
-    // alignItems: "center",
-    // marginBottom: 20,
-  },
-  backgroundImage: {
-    width: "100%",
-    height: 220,
-    position: "absolute",
-    top: 0,
-  },
-  qrContainer: {
-    display: "flex",
-    flexDirection: "row",
-    marginTop: 60,
-    marginHorizontal: 10,
-  },
-  qrCode: {
-    width: 90,
-    height: 90,
-    borderRadius: 60,
-    borderWidth: 2,
-    borderColor: "#FFD700",
-    marginHorizontal: 20,
+  profileImage: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    borderWidth: 3,
+    borderColor: "#00bcd4",
+    marginBottom: 10,
   },
   name: {
-    fontSize: 18,
-    fontWeight: 500,
-    color: "white",
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#333",
   },
   username: {
     fontSize: 14,
-    color: "#2F3A3B",
+    color: "#777",
   },
-  tabContainer: {
+  stats: {
     flexDirection: "row",
-    marginHorizontal: 5,
-    marginBottom: 16,
-    marginTop: 16,
-    justifyContent: "space-between",
+    justifyContent: "space-evenly",
+    width: "60%",
+    marginTop: 10,
   },
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
+  statItem: {
     alignItems: "center",
-    borderRadius: 10,
-    backgroundColor: "#666",
-    marginHorizontal: 5,
   },
-  activeTab: {
-    backgroundColor: "white",
-    borderWidth: 2,
-    borderColor: "#FF5555",
-  },
-  tabText: {
-    fontSize: 16,
-    color: "#fff",
+  statNumber: {
+    fontSize: 18,
     fontWeight: "600",
+    color: "#111",
   },
-  activeTabText: {
-    color: "#000",
-  },
-  detailsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 20,
-    borderRadius: 8,
-  },
-  detailItem: {
-    display: "flex",
-    flexDirection: "col",
-    width: "28%",
-  },
-  detailText: {
-    fontSize: 28,
-    color: "#1F2A44",
-    fontWeight: 600,
-  },
-  detailTextTitle: {
+  statLabel: {
     fontSize: 12,
-  },
-
-  joinSchoolText: {
-    fontSize: 14,
-    color: "#000",
-    fontWeight: "600",
+    color: "#777",
   },
   section: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#2F3A3B",
-    marginHorizontal: 20,
-    marginVertical: 5,
+    backgroundColor: "#fff",
+    marginHorizontal: 10,
+    marginBottom: 15,
+    borderRadius: 12,
     padding: 15,
-    borderRadius: 10,
-  },
-  sectionIcon: {
-    marginRight: 15,
-  },
-  sectionContent: {
-    flex: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.07,
+    shadowRadius: 4,
+    elevation: 3,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#fff",
-  },
-  sectionSubtitle: {
-    fontSize: 14,
-    color: "#ccc",
-    marginTop: 3,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    fontSize: 17,
+    fontWeight: "500",
+    color: "#333",
     marginBottom: 10,
   },
-  newStoryText: {
-    fontSize: 14,
-    color: "#1E90FF",
-  },
-  storyItem: {
+  infoItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
+    marginVertical: 5,
   },
-  storyIcon: {
-    marginRight: 15,
+  infoText: {
+    fontSize: 14,
+    color: "#444",
+    marginLeft: 10,
+    marginBottom: 5,
   },
-  storyProfilePic: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  storyDots: {
-    fontSize: 24,
-    color: "#fff",
+  settingsItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 8,
   },
 });
 

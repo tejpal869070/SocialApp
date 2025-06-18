@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons"; // For icons
 import { StatusBar } from "expo-status-bar";
-import bg4 from "../assets/photos/app-bg-5.jpg";
+import bg4 from "../assets/photos/app-bg-7.jpg";
 
 const MessageScreen = ({ navigation, route }) => {
   const { user } = route.params || {
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1F2A44",
+    backgroundColor: "#FF5555",
     padding: 15,
     paddingTop: 40,
     borderBottomWidth: 1,
@@ -199,11 +199,11 @@ const styles = StyleSheet.create({
   },
   messageSent: {
     alignSelf: "flex-end",
-    backgroundColor: "#005C4B",
+    backgroundColor: "#64b3ff",
   },
   messageReceived: {
     alignSelf: "flex-start",
-    backgroundColor: "#2A3A56",
+    backgroundColor: "#999999",
   },
   messageText: {
     fontSize: 16,

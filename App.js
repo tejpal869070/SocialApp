@@ -18,6 +18,7 @@ import { AuthProvider } from "./controller/context";
 import AllChatsScreen from "./screens/AllChatsScreen";
 import MyMatches from "./screens/MyMatches";
 import TravellingUser from "./screens/TravellingUser";
+import PlansScreen from "./screens/PlansScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -131,6 +132,11 @@ export default function App() {
             name="ForgotPassword"
             component={ForgotPasswordScreen}
             options={{ title: "Forgot Password" }}
+          />
+          <Stack.Screen
+            name="Plans"
+            component={PlansScreen}
+            options={{ title: "Forgot Password", headerShown : false }}
           />
         </Stack.Navigator>
       </NavigationContainer>
