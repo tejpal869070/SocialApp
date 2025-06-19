@@ -20,11 +20,14 @@ import transgenderIcon from "../../assets/photos/transition.png";
 import { Dropdown } from "react-native-element-dropdown";
 import bg1 from "../../assets/photos/app-bg-7.jpg";
 import img1 from "../../assets/photos/img2.jpg";
+import { UserRegister } from "../../controller/UserController";
+import { ErrorPopup, Loading, SuccessPopup } from "../../componentes/Popups";
 
 const SignUpScreen = ({ navigation }) => {
   const [step, setStep] = useState(1); // Track current step
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [mobile, setMobile] = useState("");
   const [dobDate, setDobDate] = useState("");
   const [dobMonth, setDobMonth] = useState("");
   const [dobYear, setDobYear] = useState("");
@@ -32,6 +35,9 @@ const SignUpScreen = ({ navigation }) => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
 
   // Generate dropdown options for DOB
   const currentYear = new Date().getFullYear();
@@ -59,28 +65,44 @@ const SignUpScreen = ({ navigation }) => {
   }));
 
   const genderOptions = [
-    { label: "Male", value: "Male", icon: maleIcon },
-    { label: "Female", value: "Female", icon: femaleIcon },
-    { label: "Transgender", value: "Transgender", icon: transgenderIcon },
+    { label: "Male", value: "M", icon: maleIcon },
+    { label: "Female", value: "F", icon: femaleIcon },
+    { label: "Both", value: "B", icon: transgenderIcon },
   ];
 
   const handleContinue = () => {
-    if (step === 1 && !fullName) {
-      alert("Please enter your full name");
-      return;
+    if (step === 1) {
+      if (!fullName) {
+        alert("Please enter your full name");
+        return;
+      }
     }
-    if (step === 2 && !email) {
-      alert("Please enter your email");
-      return;
+
+    if (step === 2) {
+      if (!email || !mobile) {
+        alert("Please enter both email and mobile number");
+        return;
+      }
+      if (isNaN(mobile) || mobile.length !== 10) {
+        alert("Please enter a valid 10-digit mobile number");
+        return;
+      }
     }
-    if (step === 3 && (!dobDate || !dobMonth || !dobYear)) {
-      alert("Please select your date of birth");
-      return;
+
+    if (step === 3) {
+      if (!dobDate || !dobMonth || !dobYear) {
+        alert("Please select your full date of birth");
+        return;
+      }
     }
-    if (step === 4 && !gender) {
-      alert("Please select your gender");
-      return;
+
+    if (step === 4) {
+      if (!gender) {
+        alert("Please select your gender");
+        return;
+      }
     }
+
     setStep(step + 1);
   };
 
@@ -88,24 +110,45 @@ const SignUpScreen = ({ navigation }) => {
     setStep(step - 1);
   };
 
-  const handleSignUp = () => {
-    if (password !== confirmPassword) {
+  const handleSignUp = async () => {
+    setIsLoading(true);
+    if (!password || !confirmPassword || password.length < 6) {
+      alert("Minumumm password length is 6");
+      setIsLoading(false);
+      return;
+    } else if (password !== confirmPassword) {
       alert("Passwords do not match");
+      setIsLoading(false);
       return;
     }
 
-    console.log("Full Name:", fullName);
-    console.log("Email:", email);
-    console.log("DOB:", `${dobYear}-${dobMonth}-${dobDate}`);
-    console.log("Gender:", gender);
-    console.log("Password:", password);
-    console.log("Confirm Password:", confirmPassword);
+    const formData = {
+      name: fullName,
+      email: email,
+      dob: `${dobYear}-${dobMonth}-${dobDate}`,
+      gender: gender,
+      password: password,
+      mobile: mobile,
+    };
 
-    setIsLoading(true);
-    setTimeout(() => {
+    try {
+      await UserRegister(formData);
+      setSuccess(true);
+      // clean form data
+      setFullName("");
+      setEmail("");
+      setDobYear("");
+      setDobMonth("");
+      setDobDate("");
+      setGender("");
+      setPassword("");
+      setConfirmPassword("");
+      setMobile("");
+    } catch (error) {
+      setError(error?.response?.data?.message || "Something went wrong");
+    } finally {
       setIsLoading(false);
-      console.log("Sign up completed");
-    }, 2000);
+    }
   };
 
   return (
@@ -160,6 +203,18 @@ const SignUpScreen = ({ navigation }) => {
                       autoComplete="email"
                       importantForAutofill="yes"
                       textContentType="emailAddress"
+                    />
+
+                    <Text style={styles.label}>Mobile</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={mobile}
+                      onChangeText={setMobile}
+                      placeholder="Mobile No."
+                      keyboardType="phone-pad"
+                      placeholderTextColor="#999"
+                      autoComplete="tel"
+                      importantForAutofill="yes"
                     />
                     <View
                       style={{
@@ -367,6 +422,22 @@ const SignUpScreen = ({ navigation }) => {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      {/* on success popup */}
+      {success && <SuccessPopup onClose={() => navigation.navigate("Login")} />}
+
+      {/* on error popup */}
+      {error && (
+        <ErrorPopup
+          error={error}
+          onClose={() => {
+            setError("");
+          }}
+        />
+      )}
+
+      {/* loading */}
+      {isLoading && <Loading onClose={() => setIsLoading(false)} />}
     </ImageBackground>
   );
 };

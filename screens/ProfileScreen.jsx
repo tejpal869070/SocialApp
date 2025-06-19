@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,39 +8,81 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ImageBackground,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { LinearGradient } from "expo-linear-gradient";
+import { UserDetails } from "../controller/UserController";
+import { ErrorPopup } from "../componentes/Popups";
+import { FormatDOB } from "../controller/ReusableFunction";
+import UpdateProfileDetails from "../componentes/UpdateProfileDetails";
 
-const ProfileScreen = () => {
-  const user = {
-    name: "Ahmad Nawaz Ali",
-    username: "@ahmad_nawaz_ali",
-    followers: "210",
-    following: "960K",
-    birthdate: "21 Sep 2001",
-    gender: "Male",
-    company: "Product Designer",
-    phone: "+92 302 314 5245",
-    email: "info@qampt.com",
-    website: "www.qampt.com",
-    languages: ["English"],
-    places: ["Lahore"],
-    interests: ["Traveling", "Adventure", "Friendships"],
+const ProfileScreen = ({ navigation }) => {
+  const [user, setUser] = React.useState({});
+  const [loading, setLoading] = React.useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [isPopupVisible, setIsPopupVisible] = useState(false);
+
+  const fetchUser = async () => {
+    try {
+      const response = await UserDetails();
+      setUser(response);
+    } catch (error) {
+      console.error(error);
+      setHasError(true);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    fetchUser();
+  }, []);
+
+  if (loading) {
+    return (
+      <ImageBackground
+        source={require("../assets/photos/app-bg-1.jpg")}
+        style={{
+          flex: 1,
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <ActivityIndicator size={60} color="#0000ff" />
+      </ImageBackground>
+    );
+  }
+
+  const dob = "2004-05-02T18:30:00.000Z";
+  console.log(FormatDOB(dob));
+
+  if (hasError) {
+    return (
+      <ErrorPopup
+        error="Internal Server Error"
+        onClose={() => navigation.navigate("Start")}
+      />
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={["#edf1f7", "#dbeafe"]} style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {/* Profile Header */}
-          <ImageBackground source={require("../assets/photos/app-bg-6.jpg")} style={styles.header}>
+          <ImageBackground
+            source={require("../assets/photos/app-bg-6.jpg")}
+            style={styles.header}
+          >
             <Image
-              source={{ uri: "https://randomuser.me/api/portraits/men/1.jpg" }}
+              source={{ uri: "https://randomuser?.me/api/portraits/men/1.jpg" }}
               style={styles.profileImage}
             />
-            <Text style={styles.name}>{user.name}</Text>
-            <Text style={styles.username}>{user.username}</Text>
+            <Text style={styles.name}>{user?.username}</Text>
+            <Text style={styles.username}>{user?.username}</Text>
           </ImageBackground>
 
           {/* Personal Info */}
@@ -49,39 +91,31 @@ const ProfileScreen = () => {
             <View style={styles.infoItem}>
               <Ionicons name="calendar-outline" size={20} color="#888" />
               <Text style={styles.infoText}>
-                Date of Birth: {user.birthdate}
+                Date of Birth: {FormatDOB(user?.dob)}
               </Text>
             </View>
             <View style={styles.infoItem}>
               <Ionicons name="person-outline" size={20} color="#888" />
-              <Text style={styles.infoText}>Gender: {user.gender}</Text>
+              <Text style={styles.infoText}>
+                Gender: {user?.gender === "M" ? "Male" : "Female"}
+              </Text>
             </View>
             <View style={styles.infoItem}>
               <Ionicons name="call-outline" size={20} color="#888" />
-              <Text style={styles.infoText}>Phone: {user.phone}</Text>
+              <Text style={styles.infoText}>Phone: {user?.mobile}</Text>
             </View>
             <View style={styles.infoItem}>
               <Ionicons name="mail-outline" size={20} color="#888" />
-              <Text style={styles.infoText}>Email: {user.email}</Text>
+              <Text style={styles.infoText}>Email: {user?.email}</Text>
             </View>
           </View>
 
           {/* Languages */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Languages</Text>
-            {user.languages.map((lang, index) => (
+            {user?.language?.map((lang, index) => (
               <Text key={index} style={styles.infoText}>
                 {lang}
-              </Text>
-            ))}
-          </View>
-
-          {/* Places */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Places</Text>
-            {user.places.map((place, index) => (
-              <Text key={index} style={styles.infoText}>
-                {place}
               </Text>
             ))}
           </View>
@@ -89,7 +123,7 @@ const ProfileScreen = () => {
           {/* Interests */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Interests</Text>
-            {user.interests.map((interest, index) => (
+            {user?.hobbies?.map((interest, index) => (
               <Text key={index} style={styles.infoText}>
                 {interest}
               </Text>
@@ -118,6 +152,19 @@ const ProfileScreen = () => {
           </View>
         </ScrollView>
       </LinearGradient>
+
+      {/* update profle details */}
+
+      <TouchableOpacity
+        style={styles.UpdateProfileButton1}
+        onPress={() => setIsPopupVisible(true)}
+      >
+        <MaterialCommunityIcons name="account-edit" size={40} color="black" />
+      </TouchableOpacity>
+      <UpdateProfileDetails
+        visible={isPopupVisible}
+        onClose={() => setIsPopupVisible(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -214,6 +261,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginVertical: 8,
+  },
+  UpdateProfileButton1: {
+    position: "absolute",
+    bottom: 10,
+    right: 10,
+    padding: 10,
+    backgroundColor: "white",
+    borderRadius: 60,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "blue",
   },
 });
 

@@ -7,8 +7,10 @@ import {
   Animated,
   Dimensions,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width, height } = Dimensions.get("window");
 const SIDEBAR_WIDTH = width * 0.75; // 75% of screen width
@@ -23,18 +25,21 @@ const SideNavBar = ({ navigation }) => {
     Animated.timing(slideAnim, {
       toValue: isOpen ? -SIDEBAR_WIDTH : 0,
       duration: 300,
-      useNativeDriver: true, 
+      useNativeDriver: true,
     }).start();
     setIsOpen(!isOpen);
   };
 
   const menuItems = [
     { name: "Profile", icon: "person", link: "Start" },
-
     { name: "Settings", icon: "settings-outline", link: "Start" },
-    { name: "Logout", icon: "log-out-outline", link: "Start" },
     { name: "Contact us", icon: "call-outline", link: "Start" },
   ];
+
+  const handleLogout = async () => {
+    await AsyncStorage.clear();
+    navigation.navigate("Start");
+  };
 
   return (
     <>
@@ -48,13 +53,15 @@ const SideNavBar = ({ navigation }) => {
         style={[styles.sidebar, { transform: [{ translateX: slideAnim }] }]}
       >
         {/* User Info */}
-        <View style={styles.userInfo}>
+        {/* <View style={styles.userInfo}>
           <Ionicons name="person-circle-outline" size={55} color="#4a90e2" />
           <View>
             <Text style={styles.userId}>Tarun Soni</Text>
             <Text style={styles.subId}>+91-8690708302</Text>
           </View>
-        </View>
+        </View> */}
+
+        <Text style={styles.logo}>ForThose</Text>
 
         {/* Menu Items */}
         {menuItems.map((item, index) => (
@@ -75,6 +82,43 @@ const SideNavBar = ({ navigation }) => {
             )}
           </TouchableOpacity>
         ))}
+
+        <TouchableOpacity
+          onPress={handleLogout}
+          style={[
+            styles.menuItem,
+            { backgroundColor: "#ff6b6b", borderRadius: 6, marginTop: 50 },
+          ]}
+        >
+          <View
+            style={[
+              styles.menuText,
+              {
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+              },
+            ]}
+          >
+            <Text
+              style={{
+                marginLeft: 10,
+                color: "white",
+                fontWeight: 600,
+                fontSize: 18,
+              }}
+            >
+              Logout
+            </Text>
+            <Ionicons
+              name="log-out-outline"
+              size={24}
+              color="white"
+              style={{ fontWeight: 800 }}
+            />
+          </View>
+        </TouchableOpacity>
 
         {/* Social Icons */}
         <View style={styles.socialContainer}>
@@ -120,6 +164,12 @@ const styles = StyleSheet.create({
     top: 35,
     left: 20,
     zIndex: 1000,
+  },
+  logo: {
+    fontSize: 24,
+    fontWeight: 700,
+    borderBottomWidth : 2,
+    paddingBottom : 10
   },
   sidebar: {
     position: "absolute",

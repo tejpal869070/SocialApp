@@ -16,22 +16,39 @@ import {
 import logo from "../../assets/photos/logo.png";
 import { StatusBar } from "expo-status-bar";
 import bg1 from "../../assets/photos/app-bg-7.jpg";
+import { UserLogin } from "../../controller/UserController";
+import { ErrorPopup } from "../../componentes/Popups";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from "@expo/vector-icons";
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleSignIn = () => {
-    console.log("Email:", email);
-    console.log("Password:", password);
-
+  const handleSignIn = async () => {
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      console.log("API call completed");
+
+    const formData = {
+      email: email,
+      password: password,
+    };
+
+    try {
+      const response = await UserLogin(formData);
+      const { token, email } = response;
+
+      // Save token and email in AsyncStorage
+      await AsyncStorage.setItem("token", token);
+
       navigation.navigate("Main");
-    }, 2000);
+    } catch (error) {
+      setError(error?.response?.data?.message || "Something went wrong");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -70,17 +87,29 @@ const LoginScreen = ({ navigation }) => {
                 {/* Password Input */}
                 <Text style={styles.label}>Password</Text>
 
-                <TextInput
-                  style={[styles.input]}
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="********"
-                  secureTextEntry
-                  placeholderTextColor="#999"
-                  autoComplete="off"
-                  importantForAutofill="no"
-                  textContentType="password"
-                />
+                <View style={styles.passwordContainer}>
+                  <TextInput
+                    style={styles.input}
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="********"
+                    placeholderTextColor="#999"
+                    secureTextEntry={!showPassword}
+                    autoComplete="off"
+                    importantForAutofill="no"
+                    textContentType="password"
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={styles.iconContainer}
+                  >
+                    <Ionicons
+                      name={showPassword ? "eye-off" : "eye"}
+                      size={24}
+                      color="#999"
+                    />
+                  </TouchableOpacity>
+                </View>
 
                 {/* Links */}
                 <View style={styles.linksContainer}>
@@ -115,6 +144,16 @@ const LoginScreen = ({ navigation }) => {
 
         <StatusBar style="light" />
       </SafeAreaView>
+
+      {/* on error popup */}
+      {error && (
+        <ErrorPopup
+          error={error}
+          onClose={() => {
+            setError("");
+          }}
+        />
+      )}
     </ImageBackground>
   );
 };
@@ -134,6 +173,14 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 60,
     borderBottomRightRadius: 60,
     position: "relative",
+  },
+   
+   
+  iconContainer: {
+    padding: 5,
+    position : "absolute",
+    right : 10,
+    top : 6
   },
   headerText: {
     color: "#fff",
