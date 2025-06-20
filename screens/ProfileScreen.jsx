@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+
 import {
   View,
   Text,
@@ -9,20 +10,38 @@ import {
   SafeAreaView,
   ImageBackground,
   ActivityIndicator,
+  Dimensions,
+  Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
-import { UserDetails } from "../controller/UserController";
+import { UserDetails } from "../controller/UserController"; 
 import { ErrorPopup } from "../componentes/Popups";
-import { FormatDOB } from "../controller/ReusableFunction";
-import UpdateProfileDetails from "../componentes/UpdateProfileDetails";
+import { FormatDOB } from "../controller/ReusableFunction"; 
+import Swiper from "react-native-swiper";
+import ProfileImageUpdater from "../componentes/Profile/ProfileImageUpdater";
+import ProfileDetailsList from "../componentes/Profile/ProfileDetailsList";
+import UpdateProfileDetails from "../componentes/Profile/UpdateProfileDetails";
+
+const { width, height } = Dimensions.get("window");
 
 const ProfileScreen = ({ navigation }) => {
-  const [user, setUser] = React.useState({});
-  const [loading, setLoading] = React.useState(true);
+  const [user, setUser] = useState({});
+  const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isPopupVisible, setIsPopupVisible] = useState(false);
+  const [profileImagePopup, setProfileImagePopup] = useState(false);
+
+  const profileDetails = [
+    { label: "Education", value: "education" },
+    { label: "Profession", value: "profession" },
+    { label: "Eating Preference", value: "eating" },
+    { label: "Drinking Preference", value: "drinking" },
+    { label: "Dating Type", value: "datingType" },
+    { label: "Hobbies", value: "hobbies" },
+  ];
 
   const fetchUser = async () => {
     try {
@@ -40,24 +59,31 @@ const ProfileScreen = ({ navigation }) => {
     fetchUser();
   }, []);
 
+  const userProfile = {
+    dob: "1992-07-16",
+    gender: "Female",
+    city: "Jaipur",
+    phone: "+1 555-123-4567",
+    email: "userkhicher@example.com",
+    education: "Master's in Psychology",
+    profession: "Therapist",
+    eatingPreference: "Vegetarian",
+    drinking: false,
+    hobbies: ["Reading", "Painting", "Hiking"],
+    relationshipGoal: "Long-term relationship",
+    lifestyle: "Active",
+  };
+
   if (loading) {
     return (
       <ImageBackground
         source={require("../assets/photos/app-bg-1.jpg")}
-        style={{
-          flex: 1,
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
+        style={styles.loadingContainer}
       >
-        <ActivityIndicator size={60} color="#0000ff" />
+        <ActivityIndicator size={70} color="#ff6f61" />
       </ImageBackground>
     );
   }
-
-  const dob = "2004-05-02T18:30:00.000Z";
-  console.log(FormatDOB(dob));
 
   if (hasError) {
     return (
@@ -70,101 +96,76 @@ const ProfileScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={["#edf1f7", "#dbeafe"]} style={styles.container}>
+      <ImageBackground source={require("../assets/photos/app-bg-7.jpg")}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {/* Profile Header */}
-          <ImageBackground
-            source={require("../assets/photos/app-bg-6.jpg")}
-            style={styles.header}
-          >
+          <View style={styles.swiperContainer}>
             <Image
-              source={{ uri: "https://randomuser?.me/api/portraits/men/1.jpg" }}
+              source={{
+                uri: "https://img.freepik.com/free-photo/young-beautiful-girl-posing-black-leather-jacket-park_1153-8104.jpg?semt=ais_hybrid&w=740",
+              }}
               style={styles.profileImage}
             />
-            <Text style={styles.name}>{user?.username}</Text>
-            <Text style={styles.username}>{user?.username}</Text>
-          </ImageBackground>
+            <Pressable
+              onPress={() => setProfileImagePopup(true)}
+              style={styles.profileImageEditIcon}
+            >
+              <MaterialIcons name="edit" size={22} color="#fff" />
+            </Pressable>
+          </View>
+
+          {/* User Info */}
+          <View style={styles.infoContainer}>
+            <LinearGradient
+              colors={["#fff", "#f5f5f5"]}
+              style={styles.nameContainer}
+            >
+              <Text style={styles.topName}>{user?.username || "User"}</Text>
+              <Text style={styles.location}>
+                <Ionicons name="location-sharp" size={18} color="#ff6f61" />{" "}
+                {userProfile.city}
+              </Text>
+            </LinearGradient>
+
+            <Text style={styles.bio}>
+              "I like exploring new places and having real conversations. I
+              enjoy road trips, movies, and joking around. Looking for someone
+              kind and fun to share life with."
+            </Text>
+          </View>
 
           {/* Personal Info */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Personal Info</Text>
-            <View style={styles.infoItem}>
-              <Ionicons name="calendar-outline" size={20} color="#888" />
-              <Text style={styles.infoText}>
-                Date of Birth: {FormatDOB(user?.dob)}
-              </Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Ionicons name="person-outline" size={20} color="#888" />
-              <Text style={styles.infoText}>
-                Gender: {user?.gender === "M" ? "Male" : "Female"}
-              </Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Ionicons name="call-outline" size={20} color="#888" />
-              <Text style={styles.infoText}>Phone: {user?.mobile}</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Ionicons name="mail-outline" size={20} color="#888" />
-              <Text style={styles.infoText}>Email: {user?.email}</Text>
-            </View>
-          </View>
-
-          {/* Languages */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Languages</Text>
-            {user?.language?.map((lang, index) => (
-              <Text key={index} style={styles.infoText}>
-                {lang}
-              </Text>
-            ))}
-          </View>
-
-          {/* Interests */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Interests</Text>
-            {user?.hobbies?.map((interest, index) => (
-              <Text key={index} style={styles.infoText}>
-                {interest}
-              </Text>
-            ))}
-          </View>
-
-          {/* Settings */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Settings</Text>
-            <TouchableOpacity style={styles.settingsItem}>
-              <Ionicons name="shield-outline" size={20} color="#666" />
-              <Text style={styles.infoText}>Privacy</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.settingsItem}>
-              <Ionicons
-                name="information-circle-outline"
-                size={20}
-                color="#666"
-              />
-              <Text style={styles.infoText}>Information</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.settingsItem}>
-              <Ionicons name="log-out-outline" size={20} color="#666" />
-              <Text style={styles.infoText}>Log out</Text>
-            </TouchableOpacity>
-          </View>
+          <ProfileDetailsList profile={userProfile} />
         </ScrollView>
-      </LinearGradient>
 
-      {/* update profle details */}
+        {/* Update Profile Button */}
+        <TouchableOpacity
+          style={styles.updateProfileButton}
+          onPress={() => setIsPopupVisible(true)}
+        >
+          <LinearGradient
+            colors={["#ff6f61", "#ff8a65"]}
+            style={styles.buttonGradient}
+          >
+            <MaterialCommunityIcons
+              name="account-edit"
+              size={32}
+              color="#fff"
+            />
+          </LinearGradient>
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.UpdateProfileButton1}
-        onPress={() => setIsPopupVisible(true)}
-      >
-        <MaterialCommunityIcons name="account-edit" size={40} color="black" />
-      </TouchableOpacity>
-      <UpdateProfileDetails
-        visible={isPopupVisible}
-        onClose={() => setIsPopupVisible(false)}
-      />
+        {/* Popups */}
+        <UpdateProfileDetails
+          visible={isPopupVisible}
+          onClose={() => setIsPopupVisible(false)}
+        />
+        <ProfileImageUpdater
+          isModalVisible={profileImagePopup}
+          closeModal={() => setProfileImagePopup(false)}
+          existingPhotos={user?.images}
+        />
+      </ImageBackground>
     </SafeAreaView>
   );
 };
@@ -172,106 +173,101 @@ const ProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#edf1f7",
+    backgroundColor: "#fff",
   },
-  container: {
+  gradientBackground: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 30,
+    paddingBottom: 100,
   },
-  header: {
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 30,
-    backgroundColor: "white",
-    marginBottom: 15,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 4,
+  },
+  swiperContainer: {
+    height: 200,
+    width: "100%",
+    borderRadius: 20,
+    overflow: "hidden",
+    marginBottom: 20,
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 40,
   },
   profileImage: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    borderWidth: 3,
-    borderColor: "#00bcd4",
-    marginBottom: 10,
+    width: 150,
+    height: 150,
+    borderRadius: 600,
   },
-  name: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#333",
+  swiperImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 20,
   },
-  username: {
-    fontSize: 14,
-    color: "#777",
-  },
-  stats: {
-    flexDirection: "row",
-    justifyContent: "space-evenly",
-    width: "60%",
-    marginTop: 10,
-  },
-  statItem: {
-    alignItems: "center",
-  },
-  statNumber: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#111",
-  },
-  statLabel: {
-    fontSize: 12,
-    color: "#777",
-  },
-  section: {
-    backgroundColor: "#fff",
-    marginHorizontal: 10,
-    marginBottom: 15,
-    borderRadius: 12,
-    padding: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.07,
-    shadowRadius: 4,
+  profileImageEditIcon: {
+    position: "absolute",
+    bottom: 15,
+    right: 15,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    borderRadius: 50,
+    padding: 8  ,
     elevation: 3,
   },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: "500",
+  infoContainer: {
+    marginHorizontal: 15,
+    marginBottom: 20,
+  },
+  nameContainer: {
+    padding: 20,
+    borderRadius: 15,
+    alignItems: "center",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  topName: {
+    fontSize: 32,
+    fontWeight: "bold",
     color: "#333",
-    marginBottom: 10,
-  },
-  infoItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 5,
-  },
-  infoText: {
-    fontSize: 14,
-    color: "#444",
-    marginLeft: 10,
     marginBottom: 5,
+    fontFamily: "System",
   },
-  settingsItem: {
+  location: {
+    fontSize: 16,
+    color: "#555",
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 8,
   },
-  UpdateProfileButton1: {
+  bio: {
+    fontSize: 16,
+    color: "#ff732d",
+    fontStyle: "italic",
+    textAlign: "center",
+    marginVertical: 15,
+    paddingHorizontal: 10,
+    lineHeight: 24,
+  },
+  updateProfileButton: {
     position: "absolute",
-    bottom: 10,
-    right: 10,
-    padding: 10,
-    backgroundColor: "white",
-    borderRadius: 60,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: "blue",
+    bottom: 30,
+    right: 20,
+    borderRadius: 50,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  buttonGradient: {
+    padding: 15,
+    borderRadius: 50,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 

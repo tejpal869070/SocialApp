@@ -10,8 +10,8 @@ import {
   ImageBackground,
   TextInput,
 } from "react-native";
-import { matches } from "../assets/Data/Matches"; 
-import ProfilePopup from "../componentes/ProfilePopup";
+import { matches } from "../assets/Data/Matches";  
+import ProfilePopup from "../componentes/Profile/ProfilePopup";
 
 const { width } = Dimensions.get("window");
 const itemSpacing = 10;
