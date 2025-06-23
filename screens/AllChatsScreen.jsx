@@ -10,6 +10,8 @@ import {
 import { Ionicons } from "@expo/vector-icons"; // For the call icon
 import { chats } from "../assets/Data/Chats"; // Assuming 'chats' has age and location data
 import { StatusBar } from "expo-status-bar";
+import messageIcon from "../assets/photos/message (1).png";
+import callIcon from "../assets/photos/iphone.png";
 
 const AllChatsScreen = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState("Inbox");
@@ -18,7 +20,9 @@ const AllChatsScreen = ({ navigation }) => {
   const inboxChats = chats.filter(
     (chat) => chat.type === "inbox" || !chat.type
   );
-  const requestsChats = chats.filter((chat) => chat.type === "request");
+  const requestsChats = chats.filter(
+    (chat) => chat.type === "message-request" || chat.type === "phone-request"
+  );
 
   const renderChatItem = ({ item }) => {
     return (
@@ -37,9 +41,7 @@ const AllChatsScreen = ({ navigation }) => {
             </Text>
           ) : (
             <View style={styles.requestInfo}>
-              <Text style={styles.ageLocation}>
-                Age: 24  📍Jaipur
-              </Text>
+              <Text style={styles.ageLocation}>Age: 24 📍Jaipur</Text>
             </View>
           )}
         </View>
@@ -55,18 +57,42 @@ const AllChatsScreen = ({ navigation }) => {
             </>
           ) : (
             <View style={styles.requestButtons}>
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => handleAddRequest(item.id)}
-              >
-                <Text style={styles.addButtonText}>Confirm</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.rejectButton}
-                onPress={() => handleRejectRequest(item.id)}
-              >
-                <Text style={styles.rejectButtonText}>Delete</Text>
-              </TouchableOpacity>
+              <Image
+                source={
+                  item.type === "message-request" ? messageIcon : callIcon
+                }
+                style={{ width: 32, height: 32, marginRight: 6 }}
+              />
+              {item.type === "message-request" ? (
+                <TouchableOpacity
+                  style={styles.addButton}
+                  onPress={() => handleAddRequest(item.id)}
+                >
+                  <Text style={styles.addButtonText}>Confirm</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.addButton, { paddingHorizontal: 19 }]}
+                  onPress={() => handleAddRequest(item.id)}
+                >
+                  <Text style={styles.addButtonText}>Allow</Text>
+                </TouchableOpacity>
+              )}
+              {item.type === "message-request" ? (
+                <TouchableOpacity
+                  style={styles.rejectButton}
+                  onPress={() => handleRejectRequest(item.id)}
+                >
+                  <Text style={styles.rejectButtonText}>Delete</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.rejectButton, {paddingHorizontal : 17}]}
+                  onPress={() => handleRejectRequest(item.id)}
+                >
+                  <Text style={styles.rejectButtonText}>Deny</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </View>
@@ -98,7 +124,10 @@ const AllChatsScreen = ({ navigation }) => {
           onPress={() => setActiveTab("Inbox")}
         >
           <Text
-            style={[styles.tabText, activeTab === "Inbox" && styles.activeTabText]}
+            style={[
+              styles.tabText,
+              activeTab === "Inbox" && styles.activeTabText,
+            ]}
           >
             Inbox
           </Text>
@@ -108,7 +137,10 @@ const AllChatsScreen = ({ navigation }) => {
           onPress={() => setActiveTab("Requests")}
         >
           <Text
-            style={[styles.tabText, activeTab === "Requests" && styles.activeTabText]}
+            style={[
+              styles.tabText,
+              activeTab === "Requests" && styles.activeTabText,
+            ]}
           >
             Requests
           </Text>
@@ -148,7 +180,7 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: "row",
-    backgroundColor: "#fff",
+    backgroundColor: "black",
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
   },
@@ -160,7 +192,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "transparent",
   },
   activeTab: {
-    borderBottomColor: "#FF5555",
+    borderBottomColor: "white",
   },
   tabText: {
     fontSize: 16,
@@ -168,18 +200,18 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   activeTabText: {
-    color: "#FF5555",
+    color: "white",
   },
   listContainer: {
-    paddingBottom: 40, 
+    paddingBottom: 40,
   },
   chatItem: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    padding: 15,   
-    borderBottomWidth : 1,
-    borderColor : "gray"
+    padding: 15,
+    borderBottomWidth: 1,
+    borderColor: "gray",
   },
   profilePic: {
     width: 50,
@@ -225,22 +257,22 @@ const styles = StyleSheet.create({
   },
   addButton: {
     marginRight: 10,
-    backgroundColor: "#34C759", 
+    backgroundColor: "#34C759",
     borderRadius: 8,
-    paddingHorizontal : 12,
-    paddingVertical : 7,
-    fontWeight : 700
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    fontWeight: 700,
   },
   addButtonText: {
-    color: "#fff", 
+    color: "#fff",
     fontSize: 13,
   },
   rejectButton: {
-    backgroundColor: "#FF5555", 
+    backgroundColor: "#FF5555",
     borderRadius: 8,
-    paddingHorizontal : 12,
-    paddingVertical : 7,
-    fontWeight : 700
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    fontWeight: 700,
   },
   rejectButtonText: {
     color: "#fff",

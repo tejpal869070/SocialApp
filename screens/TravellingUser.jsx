@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: "row",
-    backgroundColor: "#fff",
+    backgroundColor: "black",
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
   },
@@ -171,9 +171,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: "transparent",
   },
-  activeTab: { borderBottomColor: "#FF5555" },
+  activeTab: { borderBottomColor: "white" },
   tabText: { fontSize: 16, color: "#666", fontWeight: "600" },
-  activeTabText: { color: "#FF5555" },
+  activeTabText: { color: "white" },
   userCard: {
     flexDirection: "row",
     backgroundColor: "#FFF",

@@ -23,6 +23,7 @@ import SideNavBar from "../componentes/SideNavBar";
 import ProfileFilter from "../componentes/ProfileFilter";
 import MatchPopup from "../componentes/HaveMatch";
 import crown from "../assets/photos/crown.png";
+import ProfilePopup from "../componentes/Profile/ProfilePopup";
 
 const { width, height } = Dimensions.get("window");
 
@@ -32,6 +33,8 @@ const HomeScreen = ({ navigation }) => {
   const [liked, setLiked] = useState(false);
   const [showMessagePopup, setShowMessagePopup] = useState(false);
   const [matched, setMatched] = useState(false);
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState(null);
 
   const likeTranslateY = useRef(new Animated.Value(height)).current;
   const messagePopupAnim = useRef(new Animated.Value(height)).current;
@@ -42,6 +45,17 @@ const HomeScreen = ({ navigation }) => {
   const currentProfile = profiles[currentProfileIndex];
 
   const sidebarAnim = useRef(new Animated.Value(-width)).current;
+
+  // close profile details popup
+  const closeProfile = () => {
+    setModalVisible(false);
+    setSelectedProfile(null);
+  };
+
+  const openProfile = (match) => {
+    setSelectedProfile(match);
+    setModalVisible(true);
+  };
 
   const animateImageChange = (newIndex) => {
     Animated.timing(imageOpacity, {
@@ -95,7 +109,7 @@ const HomeScreen = ({ navigation }) => {
   const handleLike = () => {
     setLiked(true);
 
-    if (currentProfile.location === "Jaipur") {
+    if (currentProfile.city === "Jaipur") {
       setMatched(true);
     } else {
       // Animate red overlay opacity and love image in parallel
@@ -207,7 +221,7 @@ const HomeScreen = ({ navigation }) => {
                     Age : {currentProfile.age}
                   </Text>
                   <Text style={styles.location}>
-                    🏠 Lives in {currentProfile.location}
+                    🏠 Lives in {currentProfile.city}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -224,6 +238,19 @@ const HomeScreen = ({ navigation }) => {
                   />
                 ))}
               </View>
+
+              {/* user detail icon */}
+              <TouchableOpacity
+                style={[styles.button, styles.userDetailIcon]}
+                onPress={() => openProfile(currentProfile)}
+              >
+                <Text style={styles.buttonText}>
+                  <Image
+                    style={{ width: 50, height: 50 }}
+                    source={require("../assets/photos/detail.png")}
+                  />
+                </Text>
+              </TouchableOpacity>
             </View>
           </PanGestureHandler>
 
@@ -245,14 +272,6 @@ const HomeScreen = ({ navigation }) => {
                 alignItems: "center",
               }}
             >
-              <TouchableOpacity style={styles.button} onPress={handleMessage}>
-                <Text style={styles.buttonText}>
-                  <Image
-                    style={{ width: 40, height: 40 }}
-                    source={require("../assets/photos/user.png")}
-                  />
-                </Text>
-              </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.button, { width: 90, height: 90 }]}
                 onPress={handleLike}
@@ -324,6 +343,12 @@ const HomeScreen = ({ navigation }) => {
       </ImageBackground>
 
       <StatusBar style="dark" />
+
+      <ProfilePopup
+        isVisible={isModalVisible}
+        match={selectedProfile}
+        onClose={closeProfile}
+      />
     </SafeAreaView>
   );
 };
@@ -427,6 +452,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
+  },
+  userDetailIcon: {
+    position: "absolute",
+    bottom: 30,
+    right: 10,
+    elevation: 10,
+    borderRadius: 60,
   },
   buttonText: {
     fontSize: 30,

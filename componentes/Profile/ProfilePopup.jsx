@@ -9,13 +9,19 @@ import {
   Animated,
   Dimensions,
   Alert,
+  Pressable,
 } from "react-native";
-import Modal from "react-native-modal"; 
+import Modal from "react-native-modal";
 import Swiper from "react-native-swiper";
+import fbicon from "../../assets/photos/facebook.png";
+import phoneicon from "../../assets/photos/iphone.png";
+import { RequestPhoneNumberPopup } from "../Popups";
 
 const { width, height } = Dimensions.get("window");
 
 const ProfilePopup = ({ isVisible, onClose, match, onMessage, onBlock }) => {
+  const [showMobileRequestPopup, setShowMobileRequestPopup] =
+    React.useState(false);
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -84,6 +90,47 @@ const ProfilePopup = ({ isVisible, onClose, match, onMessage, onBlock }) => {
             <Text style={styles.city}>📍 {match.city}</Text>
             <Text style={styles.bio}>"{match.bio}"</Text>
 
+            {/* mobile */}
+            <View style={[styles.detailsContainer, { marginBottom: 0 }]}>
+              <View style={styles.detailRow}>
+                <Text style={styles.label}>Mobile</Text>
+                <View style={{ maxWidth: "100%" }}>
+                  <View style={[styles.value, { maxWidth: "100%" }]}>
+                    <Text>+918690*****</Text>
+                    <Pressable onPress={() => setShowMobileRequestPopup(true)}>
+                      <Text style={styles.requestButton}>Request to show</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.label}>Varified By</Text>
+                <View
+                  style={[
+                    styles.value,
+                    {
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                    },
+                  ]}
+                >
+                  <Image
+                    alt="fb"
+                    source={fbicon}
+                    style={{ width: 20, height: 20 }}
+                  />
+                  <Image
+                    alt="fb"
+                    source={phoneicon}
+                    style={{ width: 20, height: 20 }}
+                  />
+                </View>
+              </View>
+            </View>
+
             {/* List view details */}
             <View style={styles.detailsContainer}>
               {profileDetails.map(({ label, value }, i) => (
@@ -128,6 +175,13 @@ const ProfilePopup = ({ isVisible, onClose, match, onMessage, onBlock }) => {
           </View>
         </Animated.View>
       </View>
+
+      {/* show mobile number popup */}
+      {showMobileRequestPopup && (
+        <RequestPhoneNumberPopup
+          onClose={() => setShowMobileRequestPopup(false)}
+        />
+      )}
     </Modal>
   );
 };
@@ -169,6 +223,10 @@ const styles = StyleSheet.create({
   image: {
     width: "100%",
     height: 400,
+  },
+  requestButton: {
+    fontSize: 12,
+    color: "#0040ff",
   },
   name: {
     fontSize: 24,

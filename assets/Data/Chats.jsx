@@ -77,7 +77,7 @@ export const chats = [
     profilePic:
       "https://photosrush.net/wp-content/uploads/simple-cute-girl-pic-cartoon-full-hd-2.jpg",
     lastMessage: "Thanks for the update!",
-    type: "inbox",
+    type: "message-request",
     timestamp: "3 days ago",
   }, 
   {
@@ -122,7 +122,7 @@ export const chats = [
     profilePic:
       "https://img.freepik.com/free-photo/beautiful-young-woman-posing-park_1153-6549.jpg?semt=ais_hybrid&w=740",
     lastMessage: "I Love You ❤️",
-    type: "request",
+    type: "phone-request",
     timestamp: "3 days ago",
   },
 ];

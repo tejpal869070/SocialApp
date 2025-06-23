@@ -7,6 +7,7 @@ import {
   Image,
   ActivityIndicatorBase,
   ActivityIndicator,
+  Pressable,
 } from "react-native";
 
 function SuccessPopup({ onClose }) {
@@ -68,6 +69,32 @@ function Loading({ onClose }) {
   );
 }
 
+// request to show phone number
+function RequestPhoneNumberPopup({ onClose }) {
+  return (
+    <View style={styles.overlay}>
+      <View style={styles.popup}>
+        <Image
+          source={require("../assets/photos/call.png")}
+          style={{ width: 50, height: 50 , marginBottom : 10 }}
+        />
+        <Text style={styles.sendPhoneRequestText}>
+          A request will be sent to the user to allow access to their contact
+          number. You’ll be able to see it once the user approves.
+        </Text>
+        <View style={styles.container}>
+          <Pressable onPress={onClose} style={[styles.button, styles.cancelButton]}>
+            <Text style={styles.cancelText}>Cancel</Text>
+          </Pressable>
+          <Pressable style={[styles.button, styles.sendButton]}>
+            <Text style={styles.sendText}>Send</Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
@@ -82,6 +109,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: "80%",
   },
+  sendPhoneRequestText: {
+    fontSize: 16,
+    color: "#000",
+    textAlign: "center",
+    fontStyle : "italic"
+  },
   checkmarkContainer: {
     width: 80,
     height: 80,
@@ -90,6 +123,36 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 20,
+  },
+  container: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    marginTop: 30,
+    gap: 10,
+  },
+  button: {
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 8,
+    alignItems: "center",
+    elevation: 2,
+  },
+  cancelButton: {
+    backgroundColor: "#f2f2f2",
+    borderWidth: 1,
+    borderColor: "#ccc",
+  },
+  sendButton: {
+    backgroundColor: "#007BFF",
+  },
+  cancelText: {
+    color: "#333",
+    fontWeight: "500",
+  },
+  sendText: {
+    color: "#fff",
+    fontWeight: "600",
   },
   checkmarkCircle: {
     width: 60,
@@ -146,4 +209,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export { SuccessPopup, ErrorPopup, Loading };
+export { SuccessPopup, ErrorPopup, Loading, RequestPhoneNumberPopup };
