@@ -30,7 +30,7 @@ function MainApp() {
         tabBarIcon: ({ color, size }) => {
           let iconName;
           if (route.name === "Home") iconName = "heart";
-          else if (route.name === "Chats") iconName = "notifications";
+          else if (route.name === "Chats") iconName = "chatbox-ellipses";
           else if (route.name === "Match") iconName = "star";
           else if (route.name === "Profile") iconName = "person";
           else if (route.name === "Travel") iconName = "car";

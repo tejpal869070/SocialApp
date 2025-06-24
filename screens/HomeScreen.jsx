@@ -31,6 +31,7 @@ const HomeScreen = ({ navigation }) => {
   const [currentProfileIndex, setCurrentProfileIndex] = useState(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [liked, setLiked] = useState(false);
+  const [disliked, setDisliked] = useState(false);
   const [showMessagePopup, setShowMessagePopup] = useState(false);
   const [matched, setMatched] = useState(false);
   const [isModalVisible, setModalVisible] = useState(false);
@@ -39,14 +40,17 @@ const HomeScreen = ({ navigation }) => {
   const likeTranslateY = useRef(new Animated.Value(height)).current;
   const messagePopupAnim = useRef(new Animated.Value(height)).current;
   const imageOpacity = useRef(new Animated.Value(1)).current;
-  const likeScale = useRef(new Animated.Value(0.5)).current; // start smaller
+  const likeScale = useRef(new Animated.Value(0.5)).current;
   const likeOverlayOpacity = useRef(new Animated.Value(0)).current;
+  const dislikeOverlayOpacity = useRef(new Animated.Value(0)).current;
+  const dislikeTranslate = useRef(
+    new Animated.ValueXY({ x: width, y: height })
+  ).current;
 
   const currentProfile = profiles[currentProfileIndex];
 
   const sidebarAnim = useRef(new Animated.Value(-width)).current;
 
-  // close profile details popup
   const closeProfile = () => {
     setModalVisible(false);
     setSelectedProfile(null);
@@ -60,13 +64,13 @@ const HomeScreen = ({ navigation }) => {
   const animateImageChange = (newIndex) => {
     Animated.timing(imageOpacity, {
       toValue: 0,
-      duration: 150,
+      duration: 10,
       useNativeDriver: true,
     }).start(() => {
       setCurrentImageIndex(newIndex);
       Animated.timing(imageOpacity, {
         toValue: 1,
-        duration: 150,
+        duration: 10,
         useNativeDriver: true,
       }).start();
     });
@@ -112,7 +116,6 @@ const HomeScreen = ({ navigation }) => {
     if (currentProfile.city === "Jaipur") {
       setMatched(true);
     } else {
-      // Animate red overlay opacity and love image in parallel
       Animated.parallel([
         Animated.timing(likeOverlayOpacity, {
           toValue: 0.6,
@@ -132,7 +135,6 @@ const HomeScreen = ({ navigation }) => {
           }),
         ]),
       ]).start(() => {
-        // Hide love image and fade out red overlay
         Animated.timing(likeOverlayOpacity, {
           toValue: 0,
           duration: 300,
@@ -150,8 +152,30 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleDislike = () => {
-    setCurrentProfileIndex((currentProfileIndex + 1) % profiles.length);
-    setCurrentImageIndex(0);
+    setDisliked(true);
+    Animated.parallel([
+      Animated.timing(dislikeOverlayOpacity, {
+        toValue: 0.9,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(dislikeTranslate, {
+        toValue: { x: 0, y: 0 },
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      Animated.timing(dislikeOverlayOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        setDisliked(false);
+        dislikeTranslate.setValue({ x: width, y: height });
+        setCurrentProfileIndex((currentProfileIndex + 1) % profiles.length);
+        setCurrentImageIndex(0);
+      });
+    });
   };
 
   const handleMessage = () => {
@@ -181,6 +205,20 @@ const HomeScreen = ({ navigation }) => {
             {
               backgroundColor: "rgba(255, 0, 0, 1)",
               opacity: likeOverlayOpacity,
+            },
+          ]}
+        />
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              backgroundColor: "rgba(88, 208, 255, 0.92)",
+              opacity: dislikeOverlayOpacity,
+              transform: [
+                { translateX: dislikeTranslate.x },
+                { translateY: dislikeTranslate.y },
+              ], 
             },
           ]}
         />
@@ -214,7 +252,6 @@ const HomeScreen = ({ navigation }) => {
                   source={{ uri: currentProfile.images[currentImageIndex] }}
                   style={[styles.profileImage, { opacity: imageOpacity }]}
                 />
-                {/* Bottom Info Section */}
                 <View style={styles.bottomInfoContainer}>
                   <Text style={styles.name}>{currentProfile.name}</Text>
                   <Text style={styles.distance}>
@@ -239,7 +276,6 @@ const HomeScreen = ({ navigation }) => {
                 ))}
               </View>
 
-              {/* user detail icon */}
               <TouchableOpacity
                 style={[styles.button, styles.userDetailIcon]}
                 onPress={() => openProfile(currentProfile)}
@@ -301,7 +337,6 @@ const HomeScreen = ({ navigation }) => {
             </Animated.View>
           )}
 
-          {/* if match then show */}
           {liked && matched && (
             <MatchPopup
               onClose={() => {
@@ -329,7 +364,7 @@ const HomeScreen = ({ navigation }) => {
                 style={styles.sendButton}
                 onPress={closeMessagePopup}
               >
-                <Text style={styles.sendButtonText}>Send</Text>
+                <Text style={styles.send10ButtonText}>Send</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.closeButton}
@@ -372,13 +407,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   touchableImage: {
-    width: width - 40,
-    height: height * 0.6,
+    width: width * 0.95,
+    height: height * 0.65,
   },
   profileImage: {
-    width: width - 40,
-    height: height * 0.6,
-    borderRadius: 10,
+    width: width * 0.95,
+    height: height * 0.65,
+    borderRadius: 12,
+    
   },
   indicators: {
     flexDirection: "row",
@@ -402,8 +438,8 @@ const styles = StyleSheet.create({
     right: 0,
     padding: 10,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
+    borderBottomLeftRadius : 10,
+    borderBottomRightRadius : 10,
   },
   statusContainer: {
     flexDirection: "row",
@@ -455,7 +491,7 @@ const styles = StyleSheet.create({
   },
   userDetailIcon: {
     position: "absolute",
-    bottom: 30,
+    bottom: 20,
     right: 10,
     elevation: 10,
     borderRadius: 60,

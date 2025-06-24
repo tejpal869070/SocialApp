@@ -8,7 +8,10 @@ import {
   ActivityIndicatorBase,
   ActivityIndicator,
   Pressable,
+  Dimensions,
 } from "react-native";
+
+const { width, height } = Dimensions.get("window");
 
 function SuccessPopup({ onClose }) {
   return (
@@ -76,14 +79,51 @@ function RequestPhoneNumberPopup({ onClose }) {
       <View style={styles.popup}>
         <Image
           source={require("../assets/photos/call.png")}
-          style={{ width: 50, height: 50 , marginBottom : 10 }}
+          style={{ width: 50, height: 50, marginBottom: 10 }}
         />
         <Text style={styles.sendPhoneRequestText}>
           A request will be sent to the user to allow access to their contact
           number. You’ll be able to see it once the user approves.
         </Text>
         <View style={styles.container}>
-          <Pressable onPress={onClose} style={[styles.button, styles.cancelButton]}>
+          <Pressable
+            onPress={onClose}
+            style={[styles.button, styles.cancelButton]}
+          >
+            <Text style={styles.cancelText}>Cancel</Text>
+          </Pressable>
+          <Pressable style={[styles.button, styles.sendButton]}>
+            <Text style={styles.sendText}>Send</Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// request trip
+function RequestTripPopup({ onClose }) {
+  return (
+    <View
+      style={[
+        styles.overlay,
+        { position: "absolute", width: width, height: height , top : 0},
+      ]}
+    >
+      <View style={styles.popup}>
+        <Image
+          source={require("../assets/photos/call.png")}
+          style={{ width: 50, height: 50, marginBottom: 10 }}
+        />
+        <Text style={styles.sendPhoneRequestText}>
+          A request will be sent to the user to allow access to their contact
+          number. You’ll be able to see it once the user approves.
+        </Text>
+        <View style={styles.container}>
+          <Pressable
+            onPress={onClose}
+            style={[styles.button, styles.cancelButton]}
+          >
             <Text style={styles.cancelText}>Cancel</Text>
           </Pressable>
           <Pressable style={[styles.button, styles.sendButton]}>
@@ -113,7 +153,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#000",
     textAlign: "center",
-    fontStyle : "italic"
+    fontStyle: "italic",
   },
   checkmarkContainer: {
     width: 80,
@@ -209,4 +249,10 @@ const styles = StyleSheet.create({
   },
 });
 
-export { SuccessPopup, ErrorPopup, Loading, RequestPhoneNumberPopup };
+export {
+  SuccessPopup,
+  ErrorPopup,
+  Loading,
+  RequestPhoneNumberPopup,
+  RequestTripPopup,
+};
