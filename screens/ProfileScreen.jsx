@@ -10,7 +10,7 @@ import {
   SafeAreaView,
   ImageBackground,
   ActivityIndicator,
-  Dimensions,
+  Dimensions, 
   Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,8 +19,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
 import { UserDetails } from "../controller/UserController"; 
 import { ErrorPopup } from "../componentes/Popups";
-import { FormatDOB } from "../controller/ReusableFunction"; 
-import Swiper from "react-native-swiper";
+import { FormatDOB } from "../controller/ReusableFunction";  
 import ProfileImageUpdater from "../componentes/Profile/ProfileImageUpdater";
 import ProfileDetailsList from "../componentes/Profile/ProfileDetailsList";
 import UpdateProfileDetails from "../componentes/Profile/UpdateProfileDetails";

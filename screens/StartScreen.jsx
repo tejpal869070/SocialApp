@@ -37,11 +37,12 @@ export default function StartScreen() {
 
   return (
     <ImageBackground
-      source={require("../assets/photos/app-bg-3.jpg")}
+      source={require("../assets/photos/little-red.jpg")}
       style={styles.container}
     >
-      <Ionicons name="heart-circle" size={100} color="#e91e63" />
-      <Text style={styles.title}>SocialApp</Text>
+      {/* <Ionicons name="heart-circle" size={100} color="#e91e63" /> */}
+      <Image alt="logo" source={require("../assets/photos/logo.png")} style={{ width: 100, height: 100 }} />
+      <Text style={styles.title}>FORTHOSE</Text>
       <ActivityIndicator size="large" color="#e91e63" style={styles.loader} />
     </ImageBackground>
   );

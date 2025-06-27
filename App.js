@@ -41,7 +41,7 @@ function MainApp() {
       })}
     >
       <Tab.Screen
-        name="Home" 
+        name="Home"
         component={HomeScreen}
         options={{ headerShown: false }}
       />
@@ -131,12 +131,12 @@ export default function App() {
           <Stack.Screen
             name="ForgotPassword"
             component={ForgotPasswordScreen}
-            options={{ title: "Forgot Password" }}
+            options={{ title: "Forgot Password", headerShown: false }}
           />
           <Stack.Screen
             name="Plans"
             component={PlansScreen}
-            options={{ title: "Forgot Password", headerShown : false }}
+            options={{ title: "Forgot Password", headerShown: false }}
           />
         </Stack.Navigator>
       </NavigationContainer>

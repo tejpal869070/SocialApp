@@ -19,12 +19,28 @@ import femaleIcon from "../../assets/photos/female.png";
 import transgenderIcon from "../../assets/photos/transition.png";
 import { Dropdown } from "react-native-element-dropdown";
 import bg1 from "../../assets/photos/app-bg-7.jpg";
-import img1 from "../../assets/photos/img2.jpg";
+import { OtpInput } from "react-native-otp-entry";
 import { UserRegister } from "../../controller/UserController";
 import { ErrorPopup, Loading, SuccessPopup } from "../../componentes/Popups";
 
+// Hypothetical OTP verification function (replace with your actual API call)
+const verifyOTP = async (email, otp) => {
+  // Simulate an API call to verify OTP
+  // Replace this with your actual backend API call
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (otp === "12345") {
+        // Example: Assume "12345" is the correct OTP
+        resolve({ success: true });
+      } else {
+        reject(new Error("Invalid OTP"));
+      }
+    }, 1000);
+  });
+};
+
 const SignUpScreen = ({ navigation }) => {
-  const [step, setStep] = useState(1); // Track current step
+  const [step, setStep] = useState(1); // Start at step 1
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
@@ -34,8 +50,8 @@ const SignUpScreen = ({ navigation }) => {
   const [gender, setGender] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
@@ -113,7 +129,7 @@ const SignUpScreen = ({ navigation }) => {
   const handleSignUp = async () => {
     setIsLoading(true);
     if (!password || !confirmPassword || password.length < 6) {
-      alert("Minumumm password length is 6");
+      alert("Minimum password length is 6");
       setIsLoading(false);
       return;
     } else if (password !== confirmPassword) {
@@ -133,8 +149,20 @@ const SignUpScreen = ({ navigation }) => {
 
     try {
       await UserRegister(formData);
+      setStep(6); // Move to OTP verification step
+    } catch (error) {
+      setError(error?.response?.data?.message || "Something went wrong");
+      setIsLoading(false);
+      setStep(6);
+    }
+  };
+
+  const handleOTPSubmit = async () => {
+    setIsLoading(true);
+    try {
+      await verifyOTP(email, otp);
       setSuccess(true);
-      // clean form data
+      // Clean form data
       setFullName("");
       setEmail("");
       setDobYear("");
@@ -144,8 +172,9 @@ const SignUpScreen = ({ navigation }) => {
       setPassword("");
       setConfirmPassword("");
       setMobile("");
+      setOtp("");
     } catch (error) {
-      setError(error?.response?.data?.message || "Something went wrong");
+      setError(error.message || "Invalid OTP");
     } finally {
       setIsLoading(false);
     }
@@ -168,7 +197,9 @@ const SignUpScreen = ({ navigation }) => {
 
               {/* Form */}
               <View style={styles.formContainer}>
-                <Text style={styles.signupText}>Create Account</Text>
+                <Text style={styles.signupText}>
+                  {step === 6 ? "Verify Email" : "Create Account"}
+                </Text>
 
                 {step === 1 && (
                   <>
@@ -204,7 +235,6 @@ const SignUpScreen = ({ navigation }) => {
                       importantForAutofill="yes"
                       textContentType="emailAddress"
                     />
-
                     <Text style={styles.label}>Mobile</Text>
                     <TextInput
                       style={styles.input}
@@ -401,20 +431,97 @@ const SignUpScreen = ({ navigation }) => {
                   </>
                 )}
 
-                {/* Link to login */}
-                <View style={styles.linksContainer}>
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate("Login")}
-                  >
-                    <Text style={styles.linkText}>
-                      Already have an account?
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                {step === 6 && (
+                  <>
+                    <OtpInput
+                      numberOfDigits={5}
+                      focusColor="green"
+                      autoFocus={false}
+                      hideStick={true}
+                      blurOnFilled={true}
+                      disabled={false}
+                      type="numeric"
+                      secureTextEntry={false}
+                      focusStickBlinkingDuration={500}
+                      onFocus={() => console.log("Focused")}
+                      onBlur={() => console.log("Blurred")}
+                      onTextChange={(text) => setOtp(text)}
+                      onFilled={(text) => setOtp(text)}
+                      textInputProps={{
+                        accessibilityLabel: "One-Time Password",
+                      }}
+                      textProps={{
+                        accessibilityRole: "text",
+                        accessibilityLabel: "OTP digit",
+                        allowFontScaling: false,
+                      }}
+                      theme={{
+                        containerStyle: styles.Otpcontainer,
+                        pinCodeContainerStyle: styles.pinCodeContainer,
+                        pinCodeTextStyle: styles.pinCodeText,
+                        focusStickStyle: styles.focusStick,
+                        focusedPinCodeContainerStyle:
+                          styles.activePinCodeContainer,
+                        placeholderTextStyle: styles.placeholderText,
+                        filledPinCodeContainerStyle:
+                          styles.filledPinCodeContainer,
+                        disabledPinCodeContainerStyle:
+                          styles.disabledPinCodeContainer,
+                      }}
+                    />
+
+
+                    {/*resend otp */}
+                    <TouchableOpacity
+                      onPress={() => { 
+                        console.log("Resend OTP");
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.linkText,
+                          { color: "black", fontWeight: "600" },
+                        ]}
+                      >
+                        RESEND OTP ?
+                      </Text>
+                    </TouchableOpacity>
+                    <View style={styles.linksContainer}>
+                      <TouchableOpacity
+                        style={[styles.signUpButton, { marginTop: 20 }]}
+                        onPress={handleOTPSubmit}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <Text style={styles.signUpText}>Verify OTP</Text>
+                        )}
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.backButton, { marginTop: 20 }]}
+                        onPress={handleBack}
+                      >
+                        <Text style={styles.backText}>⬅️ Back</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+
+                {step !== 6 && (
+                  <View style={styles.linksContainer}>
+                    <TouchableOpacity
+                      onPress={() => navigation.navigate("Login")}
+                    >
+                      <Text style={styles.linkText}>
+                        Already have an account?
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             </View>
 
-            {/* bottom img */}
             <Image
               style={styles.bottomImg}
               source={require("../../assets/photos/couple.png")}
@@ -423,20 +530,8 @@ const SignUpScreen = ({ navigation }) => {
         </KeyboardAvoidingView>
       </SafeAreaView>
 
-      {/* on success popup */}
       {success && <SuccessPopup onClose={() => navigation.navigate("Login")} />}
-
-      {/* on error popup */}
-      {error && (
-        <ErrorPopup
-          error={error}
-          onClose={() => {
-            setError("");
-          }}
-        />
-      )}
-
-      {/* loading */}
+      {error && <ErrorPopup error={error} onClose={() => setError("")} />}
       {isLoading && <Loading onClose={() => setIsLoading(false)} />}
     </ImageBackground>
   );
@@ -542,6 +637,10 @@ const styles = StyleSheet.create({
   linksContainer: {
     alignItems: "flex-end",
     marginBottom: 30,
+    marginTop: 20,
+    display: "flex",
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
   },
   linkText: {
     color: "#888",
@@ -584,6 +683,15 @@ const styles = StyleSheet.create({
     height: 300,
     margin: "auto",
     resizeMode: "contain",
+  },
+  pinCodeContainer: {
+    backgroundColor: "white",
+    width: "15%",
+    borderColor: "#ddd",
+  },
+  Otpcontainer: {
+    marginBottom: 10,
+    borderRadius: 15,
   },
 });
 

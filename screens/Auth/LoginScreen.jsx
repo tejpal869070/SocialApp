@@ -114,7 +114,7 @@ const LoginScreen = ({ navigation }) => {
                 {/* Links */}
                 <View style={styles.linksContainer}>
                   <TouchableOpacity
-                    onPress={() => navigation.navigate("SignUp")}
+                    onPress={() => navigation.navigate("ForgotPassword")}
                   >
                     <Text style={styles.linkText}>Forget password ?</Text>
                   </TouchableOpacity>
@@ -192,9 +192,7 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     position: "absolute",
-    bottom: -45,
-    // borderRadius: 45,
-    // backgroundColor: "#fff",
+    bottom: -45, 
     padding: 4,
   },
   formContainer: {

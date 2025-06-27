@@ -1,9 +1,8 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
   Animated,
@@ -11,12 +10,14 @@ import {
   SafeAreaView,
   ImageBackground,
   Pressable,
+  ActivityIndicator,
 } from "react-native";
 import {
   GestureHandlerRootView,
   PanGestureHandler,
 } from "react-native-gesture-handler";
-import { profiles } from "../assets/Data/DummyProfiles";
+import { Image } from "expo-image"; // Use expo-image for preloading and caching
+import axios from "axios"; // For API requests
 import loveImage from "../assets/photos/love-png-img.png";
 import bg1 from "../assets/photos/app-bg-7.jpg";
 import SideNavBar from "../componentes/SideNavBar";
@@ -24,12 +25,36 @@ import ProfileFilter from "../componentes/ProfileFilter";
 import MatchPopup from "../componentes/HaveMatch";
 import crown from "../assets/photos/crown.png";
 import ProfilePopup from "../componentes/Profile/ProfilePopup";
+import { CalculateAge, FormatDOB } from "../controller/ReusableFunction";
+import { LinearGradient } from "expo-linear-gradient";
+import { GetFeedData } from "../controller/UserController";
+
+// Preload images
+const preloadImages = async (profiles) => {
+  const imageUrls = profiles.flatMap((profile) => profile.images);
+  try {
+    await Promise.all(
+      imageUrls.map((url) =>
+        Image.prefetch(url).catch((error) =>
+          console.warn(`Failed to prefetch image: ${url}`, error)
+        )
+      )
+    );
+    console.log("Images preloaded successfully");
+  } catch (error) {
+    console.error("Error preloading images:", error);
+  }
+};
 
 const { width, height } = Dimensions.get("window");
 
 const HomeScreen = ({ navigation }) => {
+  const [profiles, setProfiles] = useState([]);
   const [currentProfileIndex, setCurrentProfileIndex] = useState(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
   const [showMessagePopup, setShowMessagePopup] = useState(false);
@@ -47,9 +72,32 @@ const HomeScreen = ({ navigation }) => {
     new Animated.ValueXY({ x: width, y: height })
   ).current;
 
-  const currentProfile = profiles[currentProfileIndex];
+  const currentProfile = profiles[currentProfileIndex] || {};
 
-  const sidebarAnim = useRef(new Animated.Value(-width)).current;
+  // Fetch profiles and preload images
+  useEffect(() => {
+    const loadProfiles = async () => {
+      if (loading || !hasMore) return;
+      setLoading(true);
+      const newProfiles = await GetFeedData(page);
+      if (newProfiles.length === 0) {
+        setHasMore(false);
+        setLoading(false);
+        return;
+      }
+      await preloadImages(newProfiles); // Preload images before adding to state
+      setProfiles((prev) => [...prev, ...newProfiles]);
+      setLoading(false);
+    };
+    loadProfiles();
+  }, [page]);
+
+  // Prefetch next batch when nearing the end
+  useEffect(() => {
+    if (currentProfileIndex >= profiles.length - 3 && hasMore && !loading) {
+      setPage((prev) => prev + 1);
+    }
+  }, [currentProfileIndex, profiles.length, hasMore, loading]);
 
   const closeProfile = () => {
     setModalVisible(false);
@@ -84,6 +132,7 @@ const HomeScreen = ({ navigation }) => {
       animateImageChange(currentImageIndex - 1);
     } else if (
       locationX >= halfWidth &&
+      currentProfile.images &&
       currentImageIndex < currentProfile.images.length - 1
     ) {
       animateImageChange(currentImageIndex + 1);
@@ -93,6 +142,7 @@ const HomeScreen = ({ navigation }) => {
   const handleImageSwipe = (direction) => {
     if (
       direction === "left" &&
+      currentProfile.images &&
       currentImageIndex < currentProfile.images.length - 1
     ) {
       animateImageChange(currentImageIndex + 1);
@@ -143,8 +193,7 @@ const HomeScreen = ({ navigation }) => {
           setLiked(false);
           likeTranslateY.setValue(height);
           likeScale.setValue(0.5);
-
-          setCurrentProfileIndex((currentProfileIndex + 1) % profiles.length);
+          setCurrentProfileIndex(currentProfileIndex + 1);
           setCurrentImageIndex(0);
         });
       });
@@ -172,7 +221,7 @@ const HomeScreen = ({ navigation }) => {
       }).start(() => {
         setDisliked(false);
         dislikeTranslate.setValue({ x: width, y: height });
-        setCurrentProfileIndex((currentProfileIndex + 1) % profiles.length);
+        setCurrentProfileIndex(currentProfileIndex + 1);
         setCurrentImageIndex(0);
       });
     });
@@ -187,7 +236,7 @@ const HomeScreen = ({ navigation }) => {
     }).start();
   };
 
-  const closeMessagePopup = () => {
+  const closeMessage_popup = () => {
     Animated.timing(messagePopupAnim, {
       toValue: height,
       duration: 300,
@@ -218,7 +267,7 @@ const HomeScreen = ({ navigation }) => {
               transform: [
                 { translateX: dislikeTranslate.x },
                 { translateY: dislikeTranslate.y },
-              ], 
+              ],
             },
           ]}
         />
@@ -230,65 +279,101 @@ const HomeScreen = ({ navigation }) => {
                 uri: "https://via.placeholder.com/100x40/FF5555/FFFFFF?text=Tinder",
               }}
               style={styles.logo}
-              resizeMode="contain"
+              cachePolicy="memory-disk"
+              contentFit="contain"
             />
             <Pressable
               onPress={() => navigation.navigate("Plans")}
               style={{ position: "absolute", right: 60, top: 35 }}
             >
-              <Image source={crown} style={{ width: 30, height: 30 }} />
+              <Image
+                source={crown}
+                style={{ width: 30, height: 30 }}
+                cachePolicy="memory-disk"
+              />
             </Pressable>
             <ProfileFilter />
           </View>
 
-          <PanGestureHandler onGestureEvent={onPanGestureEvent}>
-            <View style={styles.imageContainer}>
-              <TouchableOpacity
-                activeOpacity={1}
-                onPress={handleImageTap}
-                style={[styles.touchableImage, { position: "relative" }]}
-              >
-                <Animated.Image
-                  source={{ uri: currentProfile.images[currentImageIndex] }}
-                  style={[styles.profileImage, { opacity: imageOpacity }]}
-                />
-                <View style={styles.bottomInfoContainer}>
-                  <Text style={styles.name}>{currentProfile.name}</Text>
-                  <Text style={styles.distance}>
-                    Age : {currentProfile.age}
-                  </Text>
-                  <Text style={styles.location}>
-                    🏠 Lives in {currentProfile.city}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-              <View style={styles.indicators}>
-                {currentProfile.images.map((_, index) => (
-                  <View
-                    key={index}
-                    style={[
-                      styles.indicator,
-                      index === currentImageIndex
-                        ? styles.activeIndicator
-                        : null,
-                    ]}
+          {profiles.length === 0 && loading ? (
+            <ActivityIndicator
+              size="large"
+              color="#0000ff"
+              style={styles.loader}
+            />
+          ) : (
+            <PanGestureHandler onGestureEvent={onPanGestureEvent}>
+              <View style={styles.imageContainer}>
+                <TouchableOpacity
+                  activeOpacity={1}
+                  onPress={handleImageTap}
+                  style={[styles.touchableImage, { position: "relative" }]}
+                >
+                  <Animated.Image
+                    source={{
+                      uri:
+                        currentProfile.images &&
+                        currentProfile.images[currentImageIndex]
+                          ? currentProfile.images[currentImageIndex]
+                          : "https://via.placeholder.com/300", // Fallback image
+                    }}
+                    style={[styles.profileImage, { opacity: imageOpacity }]}
+                    cachePolicy="memory-disk" // Cache profile images
                   />
-                ))}
-              </View>
 
-              <TouchableOpacity
-                style={[styles.button, styles.userDetailIcon]}
-                onPress={() => openProfile(currentProfile)}
-              >
-                <Text style={styles.buttonText}>
-                  <Image
-                    style={{ width: 50, height: 50 }}
-                    source={require("../assets/photos/detail.png")}
-                  />
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </PanGestureHandler>
+                  <LinearGradient
+                    colors={["rgba(0, 0, 0, 0.5)", "transparent"]}
+                    style={styles.bottomInfoContainer}
+                    start={{ x: 0.5, y: 0.5 }}
+                    end={{ x: 0.5, y: 0 }}
+                  >
+                    <Text style={styles.name}>
+                      {currentProfile.name || "Unknown"},{" "}
+                      {currentProfile.dob
+                        ? CalculateAge(currentProfile.dob)
+                        : "N/A"}
+                    </Text>
+                    <View
+                      style={{ display: "flex", flexDirection: "row", gap: 6 }}
+                    >
+                      <Text style={styles.datingType}>
+                        {currentProfile.datingType || "N/A"}
+                      </Text>
+                    </View>
+                    <Text style={styles.location}>
+                      📍 Lives in {currentProfile.city || "Unknown"}
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+                <View style={styles.indicators}>
+                  {currentProfile.images &&
+                    currentProfile.images.map((_, index) => (
+                      <View
+                        key={index}
+                        style={[
+                          styles.indicator,
+                          index === currentImageIndex
+                            ? styles.activeIndicator
+                            : null,
+                        ]}
+                      />
+                    ))}
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.button, styles.userDetailIcon]}
+                  onPress={() => openProfile(currentProfile)}
+                >
+                  <Text style={styles.buttonText}>
+                    <Image
+                      style={{ width: 50, height: 50 }}
+                      source={require("../assets/photos/detail.png")}
+                    />
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </PanGestureHandler>
+          )}
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.button} onPress={handleMessage}>
@@ -302,7 +387,7 @@ const HomeScreen = ({ navigation }) => {
             <View
               style={{
                 display: "flex",
-                flexDirection: "col",
+                flexDirection: "column",
                 gap: 6,
                 justifyContent: "center",
                 alignItems: "center",
@@ -341,9 +426,7 @@ const HomeScreen = ({ navigation }) => {
             <MatchPopup
               onClose={() => {
                 setMatched(false);
-                setCurrentProfileIndex(
-                  (currentProfileIndex + 1) % profiles.length
-                );
+                setCurrentProfileIndex(currentProfileIndex + 1);
                 setCurrentImageIndex(0);
               }}
             />
@@ -364,7 +447,7 @@ const HomeScreen = ({ navigation }) => {
                 style={styles.sendButton}
                 onPress={closeMessagePopup}
               >
-                <Text style={styles.send10ButtonText}>Send</Text>
+                <Text style={styles.sendButtonText}>Send</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.closeButton}
@@ -414,7 +497,6 @@ const styles = StyleSheet.create({
     width: width * 0.95,
     height: height * 0.65,
     borderRadius: 12,
-    
   },
   indicators: {
     flexDirection: "row",
@@ -437,9 +519,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: 10,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    borderBottomLeftRadius : 10,
-    borderBottomRightRadius : 10,
+    borderBottomLeftRadius: 10,
+    borderBottomRightRadius: 10,
   },
   statusContainer: {
     flexDirection: "row",
@@ -469,6 +550,11 @@ const styles = StyleSheet.create({
   distance: {
     fontSize: 16,
     color: "#fff",
+  },
+  datingType: {
+    borderRadius: 60,
+    color: "white",
+    paddingVertical: 3,
   },
   buttonContainer: {
     flexDirection: "row",
