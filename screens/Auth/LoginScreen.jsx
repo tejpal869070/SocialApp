@@ -30,6 +30,11 @@ const LoginScreen = ({ navigation }) => {
 
   const handleSignIn = async () => {
     setIsLoading(true);
+    if(!email || !password) {
+      setError("Email & Password are required");
+      setIsLoading(false);
+      return;
+    }
 
     const formData = {
       email: email,

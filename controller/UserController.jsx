@@ -53,6 +53,58 @@ export const GetFeedData = async (page) => {
     data_to_send,
     axiosConfig
   );
-  console.log(response.data)
+  return response.data;
+};
+
+// check user existing
+export const CheckUserExisting = async (email, mobile) => {
+  const data_to_send = {
+    email: email,
+    mobile: mobile,
+  };
+  const response = await axios.post(
+    `${API.api_url}user/check-user-details`,
+    data_to_send
+  );
+  return response.data;
+};
+
+// send otp
+export const SendOtp = async (email) => {
+  const data_to_send = {
+    email: email,
+  };
+  const response = await axios.post(
+    `${API.api_url}user/send-otp`,
+    data_to_send
+  );
+  console.log(response.data);
+  return response.data;
+};
+
+// otp verification
+export const VerifyOtp = async (email, otp) => {
+  const data_to_send = {
+    email: email,
+    otp: otp,
+  };
+  const response = await axios.post(
+    `${API.api_url}user/verify-otp`,
+    data_to_send
+  );
+  return response.data;
+};
+
+// forget password
+export const ForgetPassword = async (email, password, token) => {
+  const data_to_send = {
+    email: email,
+    password: password,
+    token: token,
+  };
+  const response = await axios.post(
+    `${API.api_url}user/forget-password`,
+    data_to_send
+  );
   return response.data;
 };

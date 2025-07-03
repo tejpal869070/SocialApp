@@ -20,24 +20,13 @@ import transgenderIcon from "../../assets/photos/transition.png";
 import { Dropdown } from "react-native-element-dropdown";
 import bg1 from "../../assets/photos/app-bg-7.jpg";
 import { OtpInput } from "react-native-otp-entry";
-import { UserRegister } from "../../controller/UserController";
+import {
+  CheckUserExisting,
+  SendOtp,
+  UserRegister,
+  VerifyOtp,
+} from "../../controller/UserController";
 import { ErrorPopup, Loading, SuccessPopup } from "../../componentes/Popups";
-
-// Hypothetical OTP verification function (replace with your actual API call)
-const verifyOTP = async (email, otp) => {
-  // Simulate an API call to verify OTP
-  // Replace this with your actual backend API call
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (otp === "12345") {
-        // Example: Assume "12345" is the correct OTP
-        resolve({ success: true });
-      } else {
-        reject(new Error("Invalid OTP"));
-      }
-    }, 1000);
-  });
-};
 
 const SignUpScreen = ({ navigation }) => {
   const [step, setStep] = useState(1); // Start at step 1
@@ -86,104 +75,156 @@ const SignUpScreen = ({ navigation }) => {
     { label: "Both", value: "B", icon: transgenderIcon },
   ];
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
+    // Step 1: Validate Full Name
     if (step === 1) {
-      if (!fullName) {
-        alert("Please enter your full name");
+      if (!fullName.trim()) {
+        setError("Please enter your full name.");
         return;
       }
     }
 
+    // Step 2: Validate Email and Mobile
     if (step === 2) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const phoneRegex = /^[0-9]{10}$/;
+
       if (!email || !mobile) {
-        alert("Please enter both email and mobile number");
+        setError("Please enter both email and mobile number.");
         return;
       }
-      if (isNaN(mobile) || mobile.length !== 10) {
-        alert("Please enter a valid 10-digit mobile number");
+
+      if (!emailRegex.test(email)) {
+        setError("Please enter a valid email address.");
+        return;
+      }
+
+      if (!phoneRegex.test(mobile)) {
+        setError("Please enter a valid 10-digit mobile number.");
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const isValid = await CheckUserExisting(email, mobile);
+        if (!isValid) {
+          setError("User with this email or mobile already exists.");
+          setIsLoading(false);
+          return;
+        }
+      } catch (error) {
+        setError(error?.response?.data?.message || "Something went wrong!");
+        setIsLoading(false);
         return;
       }
     }
 
+    // Step 3: Validate Date of Birth
     if (step === 3) {
       if (!dobDate || !dobMonth || !dobYear) {
-        alert("Please select your full date of birth");
+        setError("Please select your full date of birth.");
         return;
       }
     }
 
+    // Step 4: Validate Gender
     if (step === 4) {
       if (!gender) {
-        alert("Please select your gender");
+        setError("Please select your gender.");
         return;
       }
     }
 
-    setStep(step + 1);
+    // All validations passed, move to next step
+    setError(""); // Clear any existing error
+    setStep((prev) => prev + 1);
+    setIsLoading(false);
   };
 
   const handleBack = () => {
     setStep(step - 1);
+    setError(""); // Clear error when going back
   };
 
   const handleSignUp = async () => {
-    setIsLoading(true);
-    if (!password || !confirmPassword || password.length < 6) {
-      alert("Minimum password length is 6");
-      setIsLoading(false);
-      return;
-    } else if (password !== confirmPassword) {
-      alert("Passwords do not match");
-      setIsLoading(false);
+    if (!password || !confirmPassword) {
+      setError("Please enter both password and confirm password.");
       return;
     }
 
-    const formData = {
-      name: fullName,
-      email: email,
-      dob: `${dobYear}-${dobMonth}-${dobDate}`,
-      gender: gender,
-      password: password,
-      mobile: mobile,
-    };
+    if (password.length < 6) {
+      setError("Minimum password length is 6 characters.");
+      return;
+    }
 
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setIsLoading(true);
     try {
-      await UserRegister(formData);
+      await SendOtp(email);
       setStep(6); // Move to OTP verification step
     } catch (error) {
-      setError(error?.response?.data?.message || "Something went wrong");
-      setIsLoading(false);
-      setStep(6);
-    }
-  };
-
-  const handleOTPSubmit = async () => {
-    setIsLoading(true);
-    try {
-      await verifyOTP(email, otp);
-      setSuccess(true);
-      // Clean form data
-      setFullName("");
-      setEmail("");
-      setDobYear("");
-      setDobMonth("");
-      setDobDate("");
-      setGender("");
-      setPassword("");
-      setConfirmPassword("");
-      setMobile("");
-      setOtp("");
-    } catch (error) {
-      setError(error.message || "Invalid OTP");
+      setError(error?.response?.data?.message || "Failed to send OTP.");
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleOTPSubmit = async () => {
+    if (otp.length !== 5) {
+      setError("Please enter a 5-digit OTP.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { token } = await VerifyOtp(email, otp); 
+      const formData = {
+        name: fullName,
+        email: email,
+        dob: `${dobYear}-${dobMonth}-${dobDate}`,
+        gender: gender,
+        password: password,
+        mobile: mobile,
+        token: token,
+      };
+      await UserRegister(formData);
+      setSuccess(true);
+      // Reset form after successful registration
+      resetForm();
+    } catch (error) { 
+      setError(
+        error?.response?.data?.message || "Invalid OTP or registration failed."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFullName("");
+    setEmail("");
+    setDobYear("");
+    setDobMonth("");
+    setDobDate("");
+    setGender("");
+    setPassword("");
+    setConfirmPassword("");
+    setMobile("");
+    setOtp("");
+  };
+
   return (
     <ImageBackground source={bg1} style={styles.safeArea}>
       <SafeAreaView style={{ flex: 1 }}>
-        <KeyboardAvoidingView style={{ flex: 1 }}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+        >
           <ScrollView
             contentContainerStyle={{ flexGrow: 1 }}
             keyboardShouldPersistTaps="handled"
@@ -232,7 +273,6 @@ const SignUpScreen = ({ navigation }) => {
                       keyboardType="email-address"
                       placeholderTextColor="#999"
                       autoComplete="email"
-                      importantForAutofill="yes"
                       textContentType="emailAddress"
                     />
                     <Text style={styles.label}>Mobile</Text>
@@ -244,7 +284,6 @@ const SignUpScreen = ({ navigation }) => {
                       keyboardType="phone-pad"
                       placeholderTextColor="#999"
                       autoComplete="tel"
-                      importantForAutofill="yes"
                     />
                     <View
                       style={{
@@ -388,7 +427,7 @@ const SignUpScreen = ({ navigation }) => {
                       placeholder="********"
                       secureTextEntry
                       placeholderTextColor="#999"
-                      autoComplete="password-new"
+                      autoComplete="new-password"
                       textContentType="newPassword"
                     />
                     <Text style={styles.label}>Confirm Password</Text>
@@ -399,7 +438,7 @@ const SignUpScreen = ({ navigation }) => {
                       placeholder="********"
                       secureTextEntry
                       placeholderTextColor="#999"
-                      autoComplete="password-new"
+                      autoComplete="new-password"
                     />
                     <View
                       style={{
@@ -443,8 +482,6 @@ const SignUpScreen = ({ navigation }) => {
                       type="numeric"
                       secureTextEntry={false}
                       focusStickBlinkingDuration={500}
-                      onFocus={() => console.log("Focused")}
-                      onBlur={() => console.log("Blurred")}
                       onTextChange={(text) => setOtp(text)}
                       onFilled={(text) => setOtp(text)}
                       textInputProps={{
@@ -470,11 +507,22 @@ const SignUpScreen = ({ navigation }) => {
                       }}
                     />
 
-
-                    {/*resend otp */}
+                    {/* Resend OTP */}
                     <TouchableOpacity
-                      onPress={() => { 
-                        console.log("Resend OTP");
+                      onPress={async () => {
+                        setOtp("");
+                        setIsLoading(true);
+                        try {
+                          await SendOtp(email);
+                          setError("");
+                        } catch (error) {
+                          setError(
+                            error?.response?.data?.message ||
+                              "Failed to resend OTP."
+                          );
+                        } finally {
+                          setIsLoading(false);
+                        }
                       }}
                     >
                       <Text
@@ -486,6 +534,7 @@ const SignUpScreen = ({ navigation }) => {
                         RESEND OTP ?
                       </Text>
                     </TouchableOpacity>
+                    {/* OTP verify and signup */}
                     <View style={styles.linksContainer}>
                       <TouchableOpacity
                         style={[styles.signUpButton, { marginTop: 20 }]}
@@ -530,7 +579,14 @@ const SignUpScreen = ({ navigation }) => {
         </KeyboardAvoidingView>
       </SafeAreaView>
 
-      {success && <SuccessPopup onClose={() => navigation.navigate("Login")} />}
+      {success && (
+        <SuccessPopup
+          onClose={() => {
+            setSuccess(false);
+            navigation.navigate("Login");
+          }}
+        />
+      )}
       {error && <ErrorPopup error={error} onClose={() => setError("")} />}
       {isLoading && <Loading onClose={() => setIsLoading(false)} />}
     </ImageBackground>
@@ -677,10 +733,10 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   bottomImg: {
-    position: "absolute",
+    position: "fixed",
     bottom: 0,
     width: "100%",
-    height: 300,
+    height: 200,
     margin: "auto",
     resizeMode: "contain",
   },

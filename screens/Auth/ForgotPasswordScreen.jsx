@@ -9,80 +9,69 @@ import {
   ActivityIndicator,
   ScrollView,
   KeyboardAvoidingView,
+  Platform,
   SafeAreaView,
   ImageBackground,
 } from "react-native";
 import bg1 from "../../assets/photos/app-bg-7.jpg";
 import logo from "../../assets/photos/logo.png";
 import { OtpInput } from "react-native-otp-entry";
-import { ErrorPopup, Loading, SuccessPopup } from "../../componentes/Popups";
-
-// Hypothetical API functions (replace with your actual API calls)
-const checkUserExists = async (identifier) => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (identifier === "tsoni9742@gmail.com" || identifier === "1234567890") {
-        resolve({ exists: true });
-      } else {
-        reject(new Error("User not found"));
-      }
-    }, 1000);
-  });
-};
-
-const sendOTP = async (identifier) => {
-  // Simulate sending OTP to email or mobile
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ success: true });
-    }, 1000);
-  });
-};
-
-const verifyOTP = async (identifier, otp) => {
-  // Simulate OTP verification
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (otp === "12345") {
-        resolve({ success: true });
-      } else {
-        reject(new Error("Invalid OTP"));
-      }
-    }, 1000);
-  });
-};
-
-const resetPassword = async (identifier, newPassword) => {
-  // Simulate password reset
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ success: true });
-    }, 1000);
-  });
-};
+import {
+  ErrorPopup,
+  Loading,
+  PasswordForgetSuccessPopup,
+  SuccessPopup,
+} from "../../componentes/Popups";
+import {
+  CheckUserExisting,
+  ForgetPassword,
+  SendOtp,
+  VerifyOtp,
+} from "../../controller/UserController";
 
 const ForgetPasswordScreen = ({ navigation }) => {
   const [step, setStep] = useState(1); // Track current step (1: input, 2: OTP, 3: new password)
-  const [identifier, setIdentifier] = useState(""); // Email or mobile
+  const [email, setEmail] = useState(""); // Email only
   const [otp, setOtp] = useState("");
+  const [token, setToken] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
+  const validateEmail = (input) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(input);
+  };
+
   const handleCheckUser = async () => {
-    if (!identifier) {
-      alert("Please enter your email or mobile number");
+    if (!email) {
+      setError("Please enter your email address.");
       return;
     }
+
+    if (!validateEmail(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await checkUserExists(identifier);
-      await sendOTP(identifier);
-      setStep(2); // Move to OTP step
+      const response = await CheckUserExisting(email);
+      if (response) {
+        setError("User not found.");
+        return;
+      }
     } catch (error) {
-      setError(error.message || "User not found");
+      console.log(error.response.status);
+      if (error?.response?.status === 400) {
+        await SendOtp(email);
+        setError("");
+        setStep(2);
+      } else {
+        setError("Failed to check user existence.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -90,55 +79,71 @@ const ForgetPasswordScreen = ({ navigation }) => {
 
   const handleVerifyOTP = async () => {
     if (!otp || otp.length !== 5) {
-      alert("Please enter a valid 5-digit OTP");
+      setError("Please enter a valid 5-digit OTP.");
       return;
     }
+
     setIsLoading(true);
     try {
-      await verifyOTP(identifier, otp);
+      const { token } = await VerifyOtp(email, otp);
+      setToken(token);
+      setError("");
       setStep(3); // Move to password reset step
     } catch (error) {
-      setError(error.message || "Invalid OTP");
+      setError(error?.response?.data?.message || "Invalid OTP.");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleResetPassword = async () => {
-    if (!password || !confirmPassword || password.length < 6) {
-      alert("Minimum password length is 6");
+    if (!password || !confirmPassword) {
+      setError("Please enter both password and confirm password.");
       return;
     }
+
+    if (password.length < 6) {
+      setError("Minimum password length is 6 characters.");
+      return;
+    }
+
     if (password !== confirmPassword) {
-      alert("Passwords do not match");
+      setError("Passwords do not match.");
       return;
     }
+
     setIsLoading(true);
     try {
-      await resetPassword(identifier, password);
+      await ForgetPassword(email, password, token);
       setSuccess(true);
-      setIdentifier("");
-      setOtp("");
-      setPassword("");
-      setConfirmPassword("");
-    } catch (error) {
-      setError(error.message || "Failed to reset password");
+    } catch (error) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+      setError(error?.response?.data?.message || "Failed to reset password.");
     } finally {
       setIsLoading(false);
+      resetForm();
     }
+  };
+
+  const resetForm = () => {
+    setEmail("");
+    setOtp("");
+    setPassword("");
+    setConfirmPassword("");
+    setToken("");
   };
 
   const handleBack = () => {
     setStep(step - 1);
+    setError(""); // Clear error when going back
   };
 
   const handleResendOTP = async () => {
     setIsLoading(true);
     try {
-      await sendOTP(identifier);
-      alert("OTP resent successfully");
+      await SendOtp(email);
+      setError("");
     } catch (error) {
-      setError(error.message || "Failed to resend OTP");
+      setError(error?.response?.data?.message || "Failed to resend OTP.");
     } finally {
       setIsLoading(false);
     }
@@ -147,7 +152,11 @@ const ForgetPasswordScreen = ({ navigation }) => {
   return (
     <ImageBackground source={bg1} style={styles.safeArea}>
       <SafeAreaView style={{ flex: 1 }}>
-        <KeyboardAvoidingView style={{ flex: 1 }}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+        >
           <ScrollView
             contentContainerStyle={{ flexGrow: 1 }}
             keyboardShouldPersistTaps="handled"
@@ -163,7 +172,7 @@ const ForgetPasswordScreen = ({ navigation }) => {
               <View style={styles.formContainer}>
                 <Text style={styles.titleText}>
                   {step === 1
-                    ? "Enter Email or Mobile"
+                    ? "Enter Email"
                     : step === 2
                     ? "Verify OTP"
                     : "Set New Password"}
@@ -173,8 +182,8 @@ const ForgetPasswordScreen = ({ navigation }) => {
                   <>
                     <TextInput
                       style={styles.input}
-                      value={identifier}
-                      onChangeText={setIdentifier}
+                      value={email}
+                      onChangeText={setEmail}
                       placeholder="user@gmail.com"
                       keyboardType="email-address"
                       placeholderTextColor="#999"
@@ -244,11 +253,9 @@ const ForgetPasswordScreen = ({ navigation }) => {
 
                     <View
                       style={{
-                        display: "flex",
                         flexDirection: "row",
-                        justifyContent: "center",
-                        marginTop: 20,
                         justifyContent: "space-between",
+                        marginTop: 20,
                       }}
                     >
                       <TouchableOpacity
@@ -282,7 +289,7 @@ const ForgetPasswordScreen = ({ navigation }) => {
                       placeholder="********"
                       secureTextEntry
                       placeholderTextColor="#999"
-                      autoComplete="password-new"
+                      autoComplete="new-password"
                       textContentType="newPassword"
                     />
                     <Text style={styles.label}>Confirm Password</Text>
@@ -293,14 +300,12 @@ const ForgetPasswordScreen = ({ navigation }) => {
                       placeholder="********"
                       secureTextEntry
                       placeholderTextColor="#999"
-                      autoComplete="password-new"
+                      autoComplete="new-password"
                     />
                     <View
                       style={{
-                        display: "flex",
                         flexDirection: "row",
-                        justifyContent: "center",
-                        gap: 6,
+                        justifyContent: "space-between",
                         marginTop: 20,
                       }}
                     >
@@ -342,7 +347,14 @@ const ForgetPasswordScreen = ({ navigation }) => {
         </KeyboardAvoidingView>
       </SafeAreaView>
 
-      {success && <SuccessPopup onClose={() => navigationnavigate("Login")} />}
+      {success && (
+        <PasswordForgetSuccessPopup
+          onClose={() => {
+            setSuccess(false);
+            navigation.navigate("Login");
+          }}
+        />
+      )}
       {error && <ErrorPopup error={error} onClose={() => setError("")} />}
       {isLoading && <Loading onClose={() => setIsLoading(false)} />}
     </ImageBackground>
@@ -484,10 +496,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0f0f0",
   },
   bottomImg: {
-    position: "absolute",
+    position: "fixed",
     bottom: 0,
     width: "100%",
-    height: 300,
+    height: 200,
     margin: "auto",
     resizeMode: "contain",
   },
