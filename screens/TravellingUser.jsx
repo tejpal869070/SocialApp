@@ -11,6 +11,7 @@ import {
 import { Picker } from "@react-native-picker/picker";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { initialUsers } from "../assets/Data/TravelUser";
+import AddTravelDetail from "../componentes/AddTravelDetail";
 
 const cities = ["All Cities", "Jaipur", "Delhi", "Mumbai", "Bangalore"];
 
@@ -127,13 +128,15 @@ export default function TravellingUser() {
           <Text style={styles.emptyText}>No users found</Text>
         }
       />
+
+      <AddTravelDetail />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FAFAFA" },
-  
+
   header: {
     backgroundColor: "#FF5555",
     padding: 20,
@@ -188,7 +191,7 @@ const styles = StyleSheet.create({
     elevation: 4,
     borderRadius: 10,
     margin: 6,
-    padding: 15, 
+    padding: 15,
   },
   detailButton: {
     backgroundColor: "#f3f3f3",

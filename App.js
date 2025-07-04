@@ -19,6 +19,7 @@ import AllChatsScreen from "./screens/AllChatsScreen";
 import MyMatches from "./screens/MyMatches";
 import TravellingUser from "./screens/TravellingUser";
 import PlansScreen from "./screens/PlansScreen";
+import ResetPasswordScreen from "./screens/Auth/ResetPasswordScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -132,6 +133,11 @@ export default function App() {
             name="ForgotPassword"
             component={ForgotPasswordScreen}
             options={{ title: "Forgot Password", headerShown: false }}
+          />
+          <Stack.Screen
+            name="ResetPassword"
+            component={ResetPasswordScreen}
+            options={{ title: "Reset Password", headerShown: false }}
           />
           <Stack.Screen
             name="Plans"

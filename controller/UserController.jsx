@@ -108,3 +108,54 @@ export const ForgetPassword = async (email, password, token) => {
   );
   return response.data;
 };
+
+// token check
+export const CheckToken = async () => {
+  try {
+    const token = await AsyncStorage.getItem("token");
+    const email = await AsyncStorage.getItem("email");
+    const axiosConfig = {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+    const data_to_send = {
+      email: email,
+    };
+    const response = await axios.post(
+      `${API.api_url}user/token-check`,
+      data_to_send,
+      axiosConfig
+    );
+
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// reset password
+export const ResetPassword = async (old_password, password) => {
+  try {
+    const email = await AsyncStorage.getItem("email");
+    const token = await AsyncStorage.getItem("token");
+    const axiosConfig = {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+    const data_to_send = {
+      old_password: old_password,
+      password: password,
+      email: email,
+    };
+    const response = await axios.post(
+      `${API.api_url}user/reset-password`,
+      data_to_send,
+      axiosConfig
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};

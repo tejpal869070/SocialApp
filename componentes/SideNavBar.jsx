@@ -32,7 +32,7 @@ const SideNavBar = ({ navigation }) => {
 
   const menuItems = [
     { name: "Profile", icon: "person", link: "Start" },
-    { name: "Settings", icon: "settings-outline", link: "Start" },
+    { name: "Reset Password", icon: "settings-outline", link: "Start" },
     { name: "Contact us", icon: "call-outline", link: "Start" },
   ];
 
@@ -82,6 +82,15 @@ const SideNavBar = ({ navigation }) => {
             )}
           </TouchableOpacity>
         ))}
+
+        <TouchableOpacity
+          onPress={() => navigation.navigate("ResetPassword")}
+          style={styles.menuItem}
+        >
+          <Ionicons name="lock-closed" size={24} color="#666" style={styles.icon} />
+          <Text style={styles.menuText}>Reset Password</Text>
+ 
+        </TouchableOpacity>
 
         <TouchableOpacity
           onPress={handleLogout}
@@ -168,8 +177,8 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 24,
     fontWeight: 700,
-    borderBottomWidth : 2,
-    paddingBottom : 10
+    borderBottomWidth: 2,
+    paddingBottom: 10,
   },
   sidebar: {
     position: "absolute",

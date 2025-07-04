@@ -47,6 +47,7 @@ const LoginScreen = ({ navigation }) => {
 
       // Save token and email in AsyncStorage
       await AsyncStorage.setItem("token", token);
+      await AsyncStorage.setItem("email", email);
 
       navigation.navigate("Main");
     } catch (error) {
@@ -220,7 +221,7 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: "#d1d1d1",
-    borderRadius: 8,
+    borderRadius: 80,
     padding: 12,
     marginBottom: 20,
     fontSize: 16,

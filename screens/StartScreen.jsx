@@ -10,6 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
+import { CheckToken } from "../controller/UserController";
 
 export default function StartScreen() {
   const navigation = useNavigation();
@@ -17,17 +18,9 @@ export default function StartScreen() {
   useEffect(() => {
     const checkUser = async () => {
       try {
-        await new Promise((resolve) => setTimeout(resolve, 1500)); // wait 2 seconds
-
-        const storedUser = await AsyncStorage.getItem("token");
-
-        if (storedUser) {
-          navigation.replace("Main");
-        } else {
-          navigation.replace("Login");
-        }
-      } catch (error) {
-        console.error("Error checking user:", error);
+        await CheckToken(); 
+        navigation.replace("Main");
+      } catch (error) { 
         navigation.replace("Login");
       }
     };
@@ -41,7 +34,11 @@ export default function StartScreen() {
       style={styles.container}
     >
       {/* <Ionicons name="heart-circle" size={100} color="#e91e63" /> */}
-      <Image alt="logo" source={require("../assets/photos/logo.png")} style={{ width: 100, height: 100 }} />
+      <Image
+        alt="logo"
+        source={require("../assets/photos/logo.png")}
+        style={{ width: 100, height: 100 }}
+      />
       <Text style={styles.title}>FORTHOSE</Text>
       <ActivityIndicator size="large" color="#e91e63" style={styles.loader} />
     </ImageBackground>

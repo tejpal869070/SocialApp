@@ -10,16 +10,16 @@ import {
   SafeAreaView,
   ImageBackground,
   ActivityIndicator,
-  Dimensions, 
+  Dimensions,
   Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
-import { UserDetails } from "../controller/UserController"; 
+import { UserDetails } from "../controller/UserController";
 import { ErrorPopup } from "../componentes/Popups";
-import { FormatDOB } from "../controller/ReusableFunction";  
+import { FormatDOB } from "../controller/ReusableFunction";
 import ProfileImageUpdater from "../componentes/Profile/ProfileImageUpdater";
 import ProfileDetailsList from "../componentes/Profile/ProfileDetailsList";
 import UpdateProfileDetails from "../componentes/Profile/UpdateProfileDetails";
@@ -95,8 +95,11 @@ const ProfileScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ImageBackground source={require("../assets/photos/app-bg-7.jpg")}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        nestedScrollEnabled={true}
+      >
+        <ImageBackground source={require("../assets/photos/app-bg-6-1.jpg")}>
           {/* Profile Header */}
           <View style={styles.swiperContainer}>
             <Image
@@ -132,39 +135,34 @@ const ProfileScreen = ({ navigation }) => {
               kind and fun to share life with."
             </Text>
           </View>
+        </ImageBackground>
+        {/* Personal Info */}
+        <ProfileDetailsList profile={userProfile} />
+      </ScrollView>
 
-          {/* Personal Info */}
-          <ProfileDetailsList profile={userProfile} />
-        </ScrollView>
-
-        {/* Update Profile Button */}
-        <TouchableOpacity
-          style={styles.updateProfileButton}
-          onPress={() => setIsPopupVisible(true)}
+      {/* Update Profile Button */}
+      <TouchableOpacity
+        style={styles.updateProfileButton}
+        onPress={() => setIsPopupVisible(true)}
+      >
+        <LinearGradient
+          colors={["#ff6f61", "#ff8a65"]}
+          style={styles.buttonGradient}
         >
-          <LinearGradient
-            colors={["#ff6f61", "#ff8a65"]}
-            style={styles.buttonGradient}
-          >
-            <MaterialCommunityIcons
-              name="account-edit"
-              size={32}
-              color="#fff"
-            />
-          </LinearGradient>
-        </TouchableOpacity>
+          <MaterialCommunityIcons name="account-edit" size={32} color="#fff" />
+        </LinearGradient>
+      </TouchableOpacity>
 
-        {/* Popups */}
-        <UpdateProfileDetails
-          visible={isPopupVisible}
-          onClose={() => setIsPopupVisible(false)}
-        />
-        <ProfileImageUpdater
-          isModalVisible={profileImagePopup}
-          closeModal={() => setProfileImagePopup(false)}
-          existingPhotos={user?.images}
-        />
-      </ImageBackground>
+      {/* Popups */}
+      <UpdateProfileDetails
+        visible={isPopupVisible}
+        onClose={() => setIsPopupVisible(false)}
+      />
+      <ProfileImageUpdater
+        isModalVisible={profileImagePopup}
+        closeModal={() => setProfileImagePopup(false)}
+        existingPhotos={user?.images}
+      />
     </SafeAreaView>
   );
 };
@@ -212,7 +210,7 @@ const styles = StyleSheet.create({
     right: 15,
     backgroundColor: "rgba(0, 0, 0, 0.7)",
     borderRadius: 50,
-    padding: 8  ,
+    padding: 8,
     elevation: 3,
   },
   infoContainer: {
@@ -244,7 +242,7 @@ const styles = StyleSheet.create({
   },
   bio: {
     fontSize: 16,
-    color: "#ff732d",
+    color: "black",
     fontStyle: "italic",
     textAlign: "center",
     marginVertical: 15,

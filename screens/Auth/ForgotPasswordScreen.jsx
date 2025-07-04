@@ -30,8 +30,8 @@ import {
 } from "../../controller/UserController";
 
 const ForgetPasswordScreen = ({ navigation }) => {
-  const [step, setStep] = useState(1); // Track current step (1: input, 2: OTP, 3: new password)
-  const [email, setEmail] = useState(""); // Email only
+  const [step, setStep] = useState(1);   
+  const [email, setEmail] = useState("");  
   const [otp, setOtp] = useState("");
   const [token, setToken] = useState("");
   const [password, setPassword] = useState("");
