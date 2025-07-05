@@ -149,7 +149,7 @@ export const ResetPassword = async (old_password, password) => {
       password: password,
       email: email,
     };
-    const response = await axios.post(
+    const response = await axios.post( 
       `${API.api_url}user/reset-password`,
       data_to_send,
       axiosConfig
@@ -159,3 +159,12 @@ export const ResetPassword = async (old_password, password) => {
     throw error;
   }
 };
+
+
+
+
+// get all cities
+export const GetCities = async () =>{
+  const response = await axios.post(`${API.api_url}user/get-cities`);
+  return response.data;
+}

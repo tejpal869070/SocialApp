@@ -1,4 +1,4 @@
-export const profiles = [
+export const DummyProfiles = [
   {
     "id": 1,
     "name": "Mansi",

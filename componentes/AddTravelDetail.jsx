@@ -11,7 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import DropDownPicker from "react-native-dropdown-picker";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
-import axios from "axios";
+import { GetCities } from "../controller/UserController";
 
 const AddTravelDetail = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -22,33 +22,23 @@ const AddTravelDetail = () => {
   const [city, setCity] = useState(null);
 
   const [description, setDescription] = useState("");
-
   const [cityList, setCityList] = useState([]);
 
-  // Dropdown open state
   const [fromOpen, setFromOpen] = useState(false);
   const [toOpen, setToOpen] = useState(false);
   const [cityOpen, setCityOpen] = useState(false);
 
-  // Date
   const [selectedDate, setSelectedDate] = useState(null);
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
 
-  // Fetch cities (use your actual API endpoint)
-  const fetchCities = async (state = "") => {
-    const url = state
-      ? `https://indian-cities-api-nocbegfhqg.now.sh/cities?state=${state}`
-      : "https://indian-cities-api-nocbegfhqg.now.sh/cities";
+  const fetchCities = async () => {
     try {
-      const res = await fetch(url);
-      const arr = await res.json();
-      setCityList(arr.map((c) => ({ label: c.City, value: c.City })));
+      const arr = await GetCities();
+      setCityList(arr.map((c) => ({ label: c.name, value: c.id })));
     } catch (e) {
-      console.error(e);
+      console.log(e.response?.data || e.message);
     }
   };
-
-  console.log(cityList);
 
   useEffect(() => {
     fetchCities();
@@ -59,6 +49,9 @@ const AddTravelDetail = () => {
     setDatePickerVisibility(false);
   };
 
+  const getCityLabelById = (id) =>
+    cityList.find((item) => item.value === id)?.label || "";
+
   const handleSubmit = () => {
     if (
       travelType === "Between cities" &&
@@ -67,6 +60,7 @@ const AddTravelDetail = () => {
       alert("Please fill in all fields");
       return;
     }
+
     if (
       travelType === "Particular city" &&
       (!city || !selectedDate || !description)
@@ -75,14 +69,17 @@ const AddTravelDetail = () => {
       return;
     }
 
-    console.log({
+    const data = {
       travelType,
-      fromCity: travelType === "Between cities" ? fromCity : null,
-      toCity: travelType === "Between cities" ? toCity : null,
-      city: travelType === "Particular city" ? city : null,
+      fromCity:
+        travelType === "Between cities" ? getCityLabelById(fromCity) : null,
+      toCity: travelType === "Between cities" ? getCityLabelById(toCity) : null,
+      city: travelType === "Particular city" ? getCityLabelById(city) : null,
       date: selectedDate.toISOString().split("T")[0],
       description,
-    });
+    };
+
+    console.log("Submitting data:", data);
 
     setFromCity(null);
     setToCity(null);
@@ -113,7 +110,6 @@ const AddTravelDetail = () => {
               <View style={styles.modalContainer}>
                 <Text style={styles.modalTitle}>Add Travel Details</Text>
 
-                {/* Travel Type Buttons */}
                 <View style={styles.travelTypeContainer}>
                   {["Between cities", "Particular city"].map((type) => (
                     <TouchableOpacity
@@ -136,7 +132,6 @@ const AddTravelDetail = () => {
                   ))}
                 </View>
 
-                {/* Dynamic Fields */}
                 {travelType === "Between cities" ? (
                   <>
                     <DropDownPicker
@@ -146,7 +141,6 @@ const AddTravelDetail = () => {
                       setOpen={setFromOpen}
                       setValue={setFromCity}
                       setItems={setCityList}
-                      onChangeSearchText={fetchCities}
                       searchable
                       placeholder="From City"
                       zIndex={7000}
@@ -160,11 +154,10 @@ const AddTravelDetail = () => {
                       setOpen={setToOpen}
                       setValue={setToCity}
                       setItems={setCityList}
-                      onChangeSearchText={fetchCities}
                       searchable
                       placeholder="To City"
-                      zIndex={2000}
-                      zIndexInverse={2000}
+                      zIndex={6000}
+                      zIndexInverse={900}
                       style={styles.dropdown}
                     />
                   </>
@@ -176,16 +169,14 @@ const AddTravelDetail = () => {
                     setOpen={setCityOpen}
                     setValue={setCity}
                     setItems={setCityList}
-                    onChangeSearchText={fetchCities}
                     searchable
                     placeholder="City"
-                    zIndex={3000}
-                    zIndexInverse={1000}
+                    zIndex={5000}
+                    zIndexInverse={800}
                     style={styles.dropdown}
                   />
                 )}
 
-                {/* Date Picker */}
                 <TouchableOpacity
                   onPress={() => setDatePickerVisibility(true)}
                   style={styles.input}
@@ -196,15 +187,15 @@ const AddTravelDetail = () => {
                       : "Select a Date"}
                   </Text>
                 </TouchableOpacity>
+
                 <DateTimePickerModal
                   isVisible={isDatePickerVisible}
                   mode="date"
                   onConfirm={handleDateConfirm}
                   onCancel={() => setDatePickerVisibility(false)}
-                  minimumDate={new Date()} // only future dates
+                  minimumDate={new Date()}
                 />
 
-                {/* Description */}
                 <TextInput
                   style={[styles.input, styles.descriptionInput]}
                   placeholder="Description"
@@ -213,7 +204,7 @@ const AddTravelDetail = () => {
                   onChangeText={setDescription}
                   multiline
                 />
-
+                                                             
                 <TouchableOpacity
                   style={styles.submitButton}
                   onPress={handleSubmit}

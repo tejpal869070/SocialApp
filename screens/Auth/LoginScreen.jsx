@@ -83,11 +83,12 @@ const LoginScreen = ({ navigation }) => {
                   value={email}
                   onChangeText={setEmail}
                   placeholder="Email"
+                  disabled={isLoading}
                   keyboardType="email-address"
                   placeholderTextColor="#999"
                   autoComplete="off"
                   importantForAutofill="no"
-                  textContentType="emailAddress"
+                  textContentType="emailAddress" 
                 />
 
                 {/* Password Input */}
@@ -98,6 +99,7 @@ const LoginScreen = ({ navigation }) => {
                     style={styles.input}
                     value={password}
                     onChangeText={setPassword}
+                    disabled={isLoading}
                     placeholder="********"
                     placeholderTextColor="#999"
                     secureTextEntry={!showPassword}
@@ -121,11 +123,13 @@ const LoginScreen = ({ navigation }) => {
                 <View style={styles.linksContainer}>
                   <TouchableOpacity
                     onPress={() => navigation.navigate("ForgotPassword")}
+                    disabled={isLoading}
                   >
                     <Text style={styles.linkText}>Forget password ?</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => navigation.navigate("SignUp")}
+                    disabled={isLoading}
                   >
                     <Text style={styles.linkText}>Create an account</Text>
                   </TouchableOpacity>

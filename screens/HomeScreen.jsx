@@ -17,7 +17,6 @@ import {
   PanGestureHandler,
 } from "react-native-gesture-handler";
 import { Image } from "expo-image"; // Use expo-image for preloading and caching
-import axios from "axios"; // For API requests
 import loveImage from "../assets/photos/love-png-img.png";
 import bg1 from "../assets/photos/app-bg-7.jpg";
 import SideNavBar from "../componentes/SideNavBar";
@@ -28,6 +27,7 @@ import ProfilePopup from "../componentes/Profile/ProfilePopup";
 import { CalculateAge, FormatDOB } from "../controller/ReusableFunction";
 import { LinearGradient } from "expo-linear-gradient";
 import { GetFeedData } from "../controller/UserController";
+import { DummyProfiles } from "../assets/Data/DummyProfiles";
 
 // Preload images
 const preloadImages = async (profiles) => {
