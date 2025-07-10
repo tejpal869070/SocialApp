@@ -149,7 +149,7 @@ export const ResetPassword = async (old_password, password) => {
       password: password,
       email: email,
     };
-    const response = await axios.post( 
+    const response = await axios.post(
       `${API.api_url}user/reset-password`,
       data_to_send,
       axiosConfig
@@ -160,11 +160,56 @@ export const ResetPassword = async (old_password, password) => {
   }
 };
 
-
-
-
 // get all cities
-export const GetCities = async () =>{
+export const GetCities = async () => {
   const response = await axios.post(`${API.api_url}user/get-cities`);
   return response.data;
-}
+};
+
+// Upload image to server
+export const uploadImageToServer = async (uri) => {
+  const formData = new FormData();
+  const localUri = uri;
+  const filename = localUri.split("/").pop();
+  const type = `image/${filename.split(".").pop()}`;
+
+  const email = await AsyncStorage.getItem("email");
+  const token = await AsyncStorage.getItem("token");
+
+  formData.append("images", {
+    uri: localUri,
+    name: filename,
+    type: type,
+  });
+
+  formData.append("email", email)
+
+  try {
+    const response = await axios.post(
+      `${API.api_url}user/add-profile-images`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`, // Add your Bearer token here
+        },
+      }
+    );
+    console.log(response.data);
+    return response;
+  } catch (error) {
+    console.error("Error uploading image:", error);
+    throw new Error(error.response?.data?.message || "Failed to upload image");
+  }
+};
+
+// Delete image from server
+export const deleteImageFromServer = async (imageId) => {
+  try {
+    const response = await axios.delete(`${API_URL}delete/${imageId}`);
+    return response.data.success; // Assuming the server returns success flag
+  } catch (error) {
+    console.error("Error deleting image:", error);
+    throw new Error(error.response?.data?.message || "Failed to delete image");
+  }
+};

@@ -98,7 +98,7 @@ export default function App() {
     <AuthProvider>
       <NavigationContainer>
         <Stack.Navigator
-          initialRouteName="Main"
+          initialRouteName="Start"
           screenOptions={{
             ...TransitionPresets.DefaultTransition,
           }}

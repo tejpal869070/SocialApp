@@ -1,5 +1,4 @@
-// ProfileImageUpdater.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,11 +6,13 @@ import {
   Image,
   StyleSheet,
   FlatList,
+  Alert,
 } from "react-native";
 import Modal from "react-native-modal";
-import * as ImagePicker from "expo-image-picker";
+import * as ImagePicker from "expo-image-picker"; 
+import { deleteImageFromServer, uploadImageToServer } from "../../controller/UserController";
 
-const MAX_IMAGES = 9;
+const MAX_IMAGES = 6;
 
 const ProfileImageUpdater = ({
   isModalVisible,
@@ -19,8 +20,14 @@ const ProfileImageUpdater = ({
   existingPhotos = [],
 }) => {
   const [images, setImages] = useState([]);
+  const [imageUrls, setImageUrls] = useState(existingPhotos); // URLs of existing images
+  const [loading, setLoading] = useState(false);
 
   const combinedImages = [...existingPhotos, ...images].slice(0, MAX_IMAGES);
+
+  useEffect(() => {
+    setImages([]);  // Reset images when modal is closed or opened
+  }, [isModalVisible]);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -30,7 +37,7 @@ const ProfileImageUpdater = ({
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images, // ✅ Works for now
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 5],
       quality: 1,
@@ -38,20 +45,48 @@ const ProfileImageUpdater = ({
 
     if (!result.canceled) {
       const uri = result.assets ? result.assets[0].uri : result.uri;
-      if (uri) {
-        if (existingPhotos.length + images.length < MAX_IMAGES) {
-          // ✅ Fixed
-          setImages((prev) => [...prev, uri]);
-        } else {
-          alert("Maximum 9 images allowed.");
+      if (existingPhotos.length + images.length < MAX_IMAGES) {
+        try {
+          setLoading(true);
+          const uploadedImageUrl = await uploadImageToServer(uri);
+          setImages((prev) => [...prev, uploadedImageUrl]);
+        } catch (error) {
+          Alert.alert("Error", error.message || "Failed to upload image");
+        } finally {
+          setLoading(false);
         }
+      } else {
+        Alert.alert("Limit Exceeded", "You can upload up to 9 images only.");
       }
     }
   };
 
   const handleUpdateProfile = () => {
-    alert("Profile updated!");
+    Alert.alert("Profile updated!");
     closeModal();
+  };
+
+  const handleRemoveImage = async (index) => {
+    const isFromExisting = index < existingPhotos.length;
+    try {
+      if (isFromExisting) {
+        const imageId = existingPhotos[index].id; // Assuming your images have an `id` for deletion
+        const success = await deleteImageFromServer(imageId);
+        if (success) {
+          Alert.alert("Success", "Image deleted successfully!");
+          return;
+        } else {
+          Alert.alert("Error", "Failed to delete image.");
+        }
+      } else {
+        const adjustedIndex = index - existingPhotos.length;
+        const updatedImages = [...images];
+        updatedImages.splice(adjustedIndex, 1);
+        setImages(updatedImages);
+      }
+    } catch (error) {
+      Alert.alert("Error", error.message || "Failed to delete image");
+    }
   };
 
   const renderImageGrid = () => {
@@ -86,20 +121,6 @@ const ProfileImageUpdater = ({
     );
   };
 
-  const handleRemoveImage = (index) => {
-    const isFromExisting = index < existingPhotos.length;
-    if (isFromExisting) {
-      // Optional: handle separately if you want to track removals from existing
-      alert("Cannot remove existing image here."); // or handle via callback
-      return;
-    }
-
-    const adjustedIndex = index - existingPhotos.length;
-    const updated = [...images];
-    updated.splice(adjustedIndex, 1);
-    setImages(updated);
-  };
-
   return (
     <Modal
       isVisible={isModalVisible}
@@ -108,6 +129,7 @@ const ProfileImageUpdater = ({
     >
       <View style={styles.modalContent}>
         <Text style={styles.modalTitle}>Update Profile Images</Text>
+        {loading && <Text>Uploading...</Text>}
         {renderImageGrid()}
         <TouchableOpacity
           onPress={handleUpdateProfile}

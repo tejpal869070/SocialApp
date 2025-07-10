@@ -14,11 +14,11 @@ import {
   ImageBackground,
 } from "react-native";
 import logo from "../../assets/photos/logo.png";
-import { StatusBar } from "expo-status-bar";
 import bg1 from "../../assets/photos/app-bg-7.jpg";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { StatusBar } from "expo-status-bar";
 import { UserLogin } from "../../controller/UserController";
 import { ErrorPopup } from "../../componentes/Popups";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 
 const LoginScreen = ({ navigation }) => {
