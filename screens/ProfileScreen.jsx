@@ -19,28 +19,15 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
 import { UserDetails } from "../controller/UserController";
 import { ErrorPopup } from "../componentes/Popups";
-import { FormatDOB } from "../controller/ReusableFunction";
 import ProfileImageUpdater from "../componentes/Profile/ProfileImageUpdater";
 import ProfileDetailsList from "../componentes/Profile/ProfileDetailsList";
 import UpdateProfileDetails from "../componentes/Profile/UpdateProfileDetails";
-
-const { width, height } = Dimensions.get("window");
 
 const ProfileScreen = ({ navigation }) => {
   const [user, setUser] = useState({});
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [profileImagePopup, setProfileImagePopup] = useState(false);
-
-  const profileDetails = [
-    { label: "Education", value: "education" },
-    { label: "Profession", value: "profession" },
-    { label: "Eating Preference", value: "eating" },
-    { label: "Drinking Preference", value: "drinking" },
-    { label: "Dating Type", value: "datingType" },
-    { label: "Hobbies", value: "hobbies" },
-  ];
 
   const fetchUser = async () => {
     try {
@@ -59,18 +46,17 @@ const ProfileScreen = ({ navigation }) => {
   }, []);
 
   const userProfile = {
-    dob: "1992-07-16",
-    gender: "Female",
-    city: "Jaipur",
-    phone: "+1 555-123-4567",
-    email: "userkhicher@example.com",
-    education: "Master's in Psychology",
-    profession: "Therapist",
-    eatingPreference: "Vegetarian",
-    drinking: false,
-    hobbies: ["Reading", "Painting", "Hiking"],
-    relationshipGoal: "Long-term relationship",
-    lifestyle: "Active",
+    phone: user?.mobile,
+    email: user?.email,
+    dob: user?.dob?.split("T")[0],
+    gender: user?.gender,
+    city: user?.city,
+    education: user?.education,
+    profession: user?.profession,
+    eatingPreference: user?.eating_preference,
+    drinking: user?.drinking,
+    hobbies: user?.hobbies,
+    dating_type: user?.dating_type,
   };
 
   if (loading) {
@@ -104,12 +90,15 @@ const ProfileScreen = ({ navigation }) => {
           <View style={styles.swiperContainer}>
             <Image
               source={{
-                uri: "https://img.freepik.com/free-photo/young-beautiful-girl-posing-black-leather-jacket-park_1153-8104.jpg?semt=ais_hybrid&w=740",
+                uri: user?.images[0],
               }}
               style={styles.profileImage}
             />
             <Pressable
-              onPress={() => setProfileImagePopup(true)}
+              onPress={async () => {
+                await fetchUser();
+                setProfileImagePopup(true);
+              }}
               style={styles.profileImageEditIcon}
             >
               <MaterialIcons name="edit" size={22} color="#fff" />
@@ -130,9 +119,8 @@ const ProfileScreen = ({ navigation }) => {
             </LinearGradient>
 
             <Text style={styles.bio}>
-              "I like exploring new places and having real conversations. I
-              enjoy road trips, movies, and joking around. Looking for someone
-              kind and fun to share life with."
+              I like exploring new places and having real conversations. I enjoy
+              road trips, movies, and joking around.
             </Text>
           </View>
         </ImageBackground>
@@ -140,27 +128,12 @@ const ProfileScreen = ({ navigation }) => {
         <ProfileDetailsList profile={userProfile} />
       </ScrollView>
 
-      {/* Update Profile Button */}
-      <TouchableOpacity
-        style={styles.updateProfileButton}
-        onPress={() => setIsPopupVisible(true)}
-      >
-        <LinearGradient
-          colors={["#ff6f61", "#ff8a65"]}
-          style={styles.buttonGradient}
-        >
-          <MaterialCommunityIcons name="account-edit" size={32} color="#fff" />
-        </LinearGradient>
-      </TouchableOpacity>
-
-      {/* Popups */}
-      <UpdateProfileDetails
-        visible={isPopupVisible}
-        onClose={() => setIsPopupVisible(false)}
-      />
       <ProfileImageUpdater
         isModalVisible={profileImagePopup}
-        closeModal={() => setProfileImagePopup(false)}
+        closeModal={() => {
+          setProfileImagePopup(false);
+          fetchUser();
+        }}
         existingPhotos={user?.images}
       />
     </SafeAreaView>

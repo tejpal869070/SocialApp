@@ -30,7 +30,7 @@ const LoginScreen = ({ navigation }) => {
 
   const handleSignIn = async () => {
     setIsLoading(true);
-    if(!email || !password) {
+    if (!email || !password) {
       setError("Email & Password are required");
       setIsLoading(false);
       return;
@@ -88,12 +88,11 @@ const LoginScreen = ({ navigation }) => {
                   placeholderTextColor="#999"
                   autoComplete="off"
                   importantForAutofill="no"
-                  textContentType="emailAddress" 
+                  textContentType="emailAddress"
                 />
 
                 {/* Password Input */}
                 <Text style={styles.label}>Password</Text>
-
                 <View style={styles.passwordContainer}>
                   <TextInput
                     style={styles.input}
@@ -184,13 +183,12 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 60,
     position: "relative",
   },
-   
-   
+
   iconContainer: {
     padding: 5,
-    position : "absolute",
-    right : 10,
-    top : 6
+    position: "absolute",
+    right: 10,
+    top: 6,
   },
   headerText: {
     color: "#fff",
@@ -202,7 +200,7 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     position: "absolute",
-    bottom: -45, 
+    bottom: -45,
     padding: 4,
   },
   formContainer: {

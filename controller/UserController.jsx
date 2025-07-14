@@ -1,6 +1,7 @@
 import axios from "axios";
 import { API } from "./Api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 
 // user register
 export const UserRegister = async (formData) => {
@@ -49,7 +50,7 @@ export const GetFeedData = async (page) => {
   };
 
   const response = await axios.post(
-    `${API.api_url}user/feed-data`,
+    `${API.api_url}user/get-feed-data`,
     data_to_send,
     axiosConfig
   );
@@ -168,48 +169,163 @@ export const GetCities = async () => {
 
 // Upload image to server
 export const uploadImageToServer = async (uri) => {
-  const formData = new FormData();
-  const localUri = uri;
-  const filename = localUri.split("/").pop();
-  const type = `image/${filename.split(".").pop()}`;
+  const filename = uri.split("/").pop();
+  const match = /\.(\w+)$/.exec(filename || "");
+  const fileType = match ? `image/${match[1]}` : `image`;
 
   const email = await AsyncStorage.getItem("email");
   const token = await AsyncStorage.getItem("token");
 
-  formData.append("images", {
-    uri: localUri,
-    name: filename,
-    type: type,
-  });
+  if (!email || !token) {
+    throw new Error("Missing user credentials");
+  }
 
-  formData.append("email", email)
+  const formData = new FormData();
+  formData.append("images", {
+    uri: Platform.OS === "android" ? uri : uri.replace("file://", ""),
+    name: filename,
+    type: fileType,
+  });
+  formData.append("email", email);
 
   try {
-    const response = await axios.post(
-      `${API.api_url}user/add-profile-images`,
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`, // Add your Bearer token here
-        },
-      }
-    );
-    console.log(response.data);
-    return response;
+    const response = await fetch(`${API.api_url}user/add-profile-images`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "multipart/form-data",
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Upload failed:", data);
+      throw new Error(data.message || "Upload failed.");
+    }
+
+    return { data };
   } catch (error) {
-    console.error("Error uploading image:", error);
-    throw new Error(error.response?.data?.message || "Failed to upload image");
+    console.error("Upload error:", error);
+    throw new Error(error.message || "Upload failed.");
   }
 };
 
 // Delete image from server
-export const deleteImageFromServer = async (imageId) => {
+export const deleteImageFromServer = async (imgUrl) => {
+  const token = await AsyncStorage.getItem("token");
+  const email = await AsyncStorage.getItem("email");
+
+  const axiosConfig = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+  const data_to_send = {
+    email: email,
+    imagePath: imgUrl,
+  };
+
+  const response = await axios.post(
+    `${API.api_url}user/delete-profile-image`,
+    data_to_send,
+    axiosConfig
+  );
+  return response.data;
+};
+
+// like a user
+export const likeProfile = async (userId) => {
+  const token = await AsyncStorage.getItem("token");
+  const email = await AsyncStorage.getItem("email");
+
+  const axiosConfig = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+
+  const data_to_send = {
+    email: email,
+    user_id: userId,
+  };
+
   try {
-    const response = await axios.delete(`${API_URL}delete/${imageId}`);
-    return response.data.success; // Assuming the server returns success flag
+    const response = await axios.post(
+      `${API.api_url}user/like-dislike-a-profile`,
+      data_to_send,
+      axiosConfig
+    );
+
+    return response.data;
   } catch (error) {
-    console.error("Error deleting image:", error);
-    throw new Error(error.response?.data?.message || "Failed to delete image");
+    console.error("Error liking the profile:", error);
+    throw error;
   }
+};
+
+// liked by me
+export const getLikedByMe = async () => {
+  const token = await AsyncStorage.getItem("token");
+  const email = await AsyncStorage.getItem("email");
+
+  const data_to_send = {
+    email: email,
+  };
+  const axiosConfig = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+  const response = await axios.get(`${API.api_url}user/users-liked-by-me`, {
+    data_to_send,
+    axiosConfig,
+  });
+  return response.data;
+};
+
+// who liked me
+export const getWhoLikedMe = async () => {
+  const token = await AsyncStorage.getItem("token");
+  const email = await AsyncStorage.getItem("email");
+
+  const data_to_send = {
+    email: email,
+    user_id: userId,
+  };
+  const axiosConfig = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+  const response = await axios.get(`${API.api_url}user/users-who-liked-me`, {
+    data_to_send,
+    axiosConfig,
+  });
+  return response.data;
+};
+
+// single user detail
+export const getSingleUserDetail = async (id) => {
+  const token = await AsyncStorage.getItem("token");
+  const email = await AsyncStorage.getItem("email");
+
+  const data_to_send = {
+    email: email,
+    user_id: id,
+  };
+
+  const axiosConfig = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+
+  const response = await axios.get(`${API.api_url}user/get-user-profile`, {
+    data_to_send,
+    axiosConfig,
+  });
+
+  return response.data;
 };

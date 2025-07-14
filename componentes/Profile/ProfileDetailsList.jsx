@@ -21,7 +21,7 @@ const ProfileDetailsList = ({ profile }) => {
     eatingPreference,
     drinking,
     hobbies,
-    relationshipGoal,
+    dating_type,
     lifestyle,
     city,
   } = profile;
@@ -39,7 +39,6 @@ const ProfileDetailsList = ({ profile }) => {
       icon: "male-female-outline",
       iconType: "Ionicons",
     },
-    { label: "City", value: city, icon: "location", iconType: "Ionicons" },
     {
       label: "Phone",
       value: phone,
@@ -52,6 +51,8 @@ const ProfileDetailsList = ({ profile }) => {
       icon: "mail-outline",
       iconType: "Ionicons",
     },
+    { label: "City", value: city, icon: "location", iconType: "Ionicons" },
+
     {
       label: "Education",
       value: education,
@@ -76,23 +77,22 @@ const ProfileDetailsList = ({ profile }) => {
       icon: "beer-outline",
       iconType: "Ionicons",
     },
-    {
-      label: "Relationship Goal",
-      value: relationshipGoal,
-      icon: "heart-outline",
-      iconType: "Ionicons",
-    },
-    {
-      label: "Lifestyle",
-      value: lifestyle,
-      icon: "walk-outline",
-      iconType: "Ionicons",
-    },
+
     ...(hobbies?.length > 0
       ? [
           {
             label: "Hobbies",
             value: hobbies.join(", "),
+            icon: "palette",
+            iconType: "FontAwesome5",
+          },
+        ]
+      : []),
+    ...(dating_type?.length > 0
+      ? [
+          {
+            label: "Dating Type",
+            value: dating_type.join(", "),
             icon: "palette",
             iconType: "FontAwesome5",
           },
@@ -110,7 +110,7 @@ const ProfileDetailsList = ({ profile }) => {
           key={item.label}
           entering={FadeInDown.delay(index * 100).duration(500)}
         >
-          <View  >
+          <View>
             <LinearGradient
               colors={["#ffffff", "#f1f5f9"]}
               style={styles.card}
@@ -153,7 +153,9 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 20,
-    paddingHorizontal : 16,
+    paddingHorizontal: 16,
+    paddingTop : 20,
+    backgroundColor : "#fff2f2ff",
   },
   card: {
     flexDirection: "row",

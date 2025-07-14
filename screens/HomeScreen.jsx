@@ -15,23 +15,27 @@ import {
 import {
   GestureHandlerRootView,
   PanGestureHandler,
+  State,
 } from "react-native-gesture-handler";
-import { Image } from "expo-image"; // Use expo-image for preloading and caching
-import loveImage from "../assets/photos/love-png-img.png";
+import { Image } from "expo-image";
 import bg1 from "../assets/photos/app-bg-7.jpg";
 import SideNavBar from "../componentes/SideNavBar";
 import ProfileFilter from "../componentes/ProfileFilter";
 import MatchPopup from "../componentes/HaveMatch";
 import crown from "../assets/photos/crown.png";
 import ProfilePopup from "../componentes/Profile/ProfilePopup";
-import { CalculateAge, FormatDOB } from "../controller/ReusableFunction";
+import { CalculateAge } from "../controller/ReusableFunction";
 import { LinearGradient } from "expo-linear-gradient";
-import { GetFeedData } from "../controller/UserController";
-import { DummyProfiles } from "../assets/Data/DummyProfiles";
+import { GetFeedData, likeProfile } from "../controller/UserController";
+
+// Default image URL for when user images are unavailable
+const DEFAULT_IMAGE = "https://via.placeholder.com/300?text=No+Image";
 
 // Preload images
 const preloadImages = async (profiles) => {
-  const imageUrls = profiles.flatMap((profile) => profile.images);
+  const imageUrls = profiles.flatMap(
+    (profile) => profile.images || [DEFAULT_IMAGE]
+  );
   try {
     await Promise.all(
       imageUrls.map((url) =>
@@ -47,6 +51,7 @@ const preloadImages = async (profiles) => {
 };
 
 const { width, height } = Dimensions.get("window");
+const SWIPE_THRESHOLD = width * 0.25;
 
 const HomeScreen = ({ navigation }) => {
   const [profiles, setProfiles] = useState([]);
@@ -56,38 +61,51 @@ const HomeScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [liked, setLiked] = useState(false);
-  const [disliked, setDisliked] = useState(false);
   const [showMessagePopup, setShowMessagePopup] = useState(false);
   const [matched, setMatched] = useState(false);
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
 
-  const likeTranslateY = useRef(new Animated.Value(height)).current;
+  const pan = useRef(new Animated.ValueXY()).current;
   const messagePopupAnim = useRef(new Animated.Value(height)).current;
   const imageOpacity = useRef(new Animated.Value(1)).current;
-  const likeScale = useRef(new Animated.Value(0.5)).current;
-  const likeOverlayOpacity = useRef(new Animated.Value(0)).current;
-  const dislikeOverlayOpacity = useRef(new Animated.Value(0)).current;
-  const dislikeTranslate = useRef(
-    new Animated.ValueXY({ x: width, y: height })
-  ).current;
+  const likeTextOpacity = useRef(new Animated.Value(0)).current;
 
   const currentProfile = profiles[currentProfileIndex] || {};
+  const nextProfile = profiles[currentProfileIndex + 1] || {};
+
+  // Interpolate opacity for LIKE text based on right swipe
+  const likeTextOpacityInterpolate = pan.x.interpolate({
+    inputRange: [0, width / 2],
+    outputRange: [0, 0.8],
+    extrapolate: "clamp",
+  });
+
+  // Interpolate rotation for swipe, pivoting from top-left corner
+  const rotate = pan.x.interpolate({
+    inputRange: [-width / 2, 0, width / 2],
+    outputRange: ["-10deg", "0deg", "10deg"],
+    extrapolate: "clamp",
+  });
 
   // Fetch profiles and preload images
   useEffect(() => {
     const loadProfiles = async () => {
       if (loading || !hasMore) return;
       setLoading(true);
-      const newProfiles = await GetFeedData(page);
-      if (newProfiles.length === 0) {
-        setHasMore(false);
+      try {
+        const newProfiles = await GetFeedData(page);
+        if (newProfiles.length === 0) {
+          setHasMore(false);
+          return;
+        }
+        await preloadImages(newProfiles);
+        setProfiles((prev) => [...prev, ...newProfiles]);
+      } catch (error) {
+        console.error("Error fetching profiles:", error);
+      } finally {
         setLoading(false);
-        return;
       }
-      await preloadImages(newProfiles); // Preload images before adding to state
-      setProfiles((prev) => [...prev, ...newProfiles]);
-      setLoading(false);
     };
     loadProfiles();
   }, [page]);
@@ -112,13 +130,13 @@ const HomeScreen = ({ navigation }) => {
   const animateImageChange = (newIndex) => {
     Animated.timing(imageOpacity, {
       toValue: 0,
-      duration: 10,
+      duration: 150,
       useNativeDriver: true,
     }).start(() => {
       setCurrentImageIndex(newIndex);
       Animated.timing(imageOpacity, {
         toValue: 1,
-        duration: 10,
+        duration: 150,
         useNativeDriver: true,
       }).start();
     });
@@ -139,91 +157,145 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
-  const handleImageSwipe = (direction) => {
-    if (
-      direction === "left" &&
-      currentProfile.images &&
-      currentImageIndex < currentProfile.images.length - 1
-    ) {
-      animateImageChange(currentImageIndex + 1);
-    } else if (direction === "right" && currentImageIndex > 0) {
-      animateImageChange(currentImageIndex - 1);
-    }
-  };
+  const onPanGestureEvent = Animated.event(
+    [{ nativeEvent: { translationX: pan.x, translationY: pan.y } }],
+    { useNativeDriver: true }
+  );
 
-  const onPanGestureEvent = (event) => {
-    const { translationX } = event.nativeEvent;
-    if (translationX > 50) {
-      handleImageSwipe("right");
-    } else if (translationX < -50) {
-      handleImageSwipe("left");
+  const onHandlerStateChange = async (event) => {
+    if (event.nativeEvent.state === State.END) {
+      const { translationX } = event.nativeEvent;
+
+      if (translationX > SWIPE_THRESHOLD) {
+        // Swipe right: Like profile
+        setLiked(true);
+        try {
+          await likeProfile(currentProfile.uid);
+        } catch (error) {
+          console.error("Error liking profile:", error);
+        }
+
+        // Animate card off-screen to the right with spring
+        Animated.sequence([
+          Animated.parallel([
+            Animated.spring(pan, {
+              toValue: { x: width * 1.5, y: 0 },
+              friction: 8,
+              tension: 40,
+              useNativeDriver: true,
+            }),
+            Animated.timing(likeTextOpacity, {
+              toValue: 0,
+              duration: 400,
+              useNativeDriver: true,
+            }),
+          ]),
+          Animated.timing(imageOpacity, {
+            toValue: 0,
+            duration: 0,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          // Update state after animation completes
+          setCurrentProfileIndex(currentProfileIndex + 1);
+          setCurrentImageIndex(0);
+          setLiked(false);
+          pan.setValue({ x: 0, y: 0 });
+          imageOpacity.setValue(1); // Reset opacity for next profile
+        });
+      } else if (translationX < -SWIPE_THRESHOLD) {
+        // Swipe left: Next profile
+        Animated.sequence([
+          Animated.parallel([
+            Animated.spring(pan, {
+              toValue: { x: -width * 1.5, y: 0 },
+              friction: 8,
+              tension: 40,
+              useNativeDriver: true,
+            }),
+            Animated.timing(likeTextOpacity, {
+              toValue: 0,
+              duration: 400,
+              useNativeDriver: true,
+            }),
+          ]),
+          Animated.timing(imageOpacity, {
+            toValue: 0,
+            duration: 0,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          // Update state after animation completes
+          setCurrentProfileIndex(currentProfileIndex + 1);
+          setCurrentImageIndex(0);
+          pan.setValue({ x: 0, y: 0 });
+          imageOpacity.setValue(1); // Reset opacity for next profile
+        });
+      } else {
+        // Reset card position with spring
+        Animated.parallel([
+          Animated.spring(pan, {
+            toValue: { x: 0, y: 0 },
+            friction: 8,
+            tension: 40,
+            useNativeDriver: true,
+          }),
+          Animated.timing(likeTextOpacity, {
+            toValue: 0,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      }
     }
   };
 
   const handleLike = () => {
     setLiked(true);
-
-    if (currentProfile.city === "Jaipur") {
-      setMatched(true);
-    } else {
-      Animated.parallel([
-        Animated.timing(likeOverlayOpacity, {
-          toValue: 0.6,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.parallel([
-          Animated.timing(likeTranslateY, {
-            toValue: height / 1.5,
-            duration: 600,
-            useNativeDriver: true,
-          }),
-          Animated.timing(likeScale, {
-            toValue: 2.5,
-            duration: 600,
-            useNativeDriver: true,
-          }),
-        ]),
-      ]).start(() => {
-        Animated.timing(likeOverlayOpacity, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }).start(() => {
-          setLiked(false);
-          likeTranslateY.setValue(height);
-          likeScale.setValue(0.5);
-          setCurrentProfileIndex(currentProfileIndex + 1);
-          setCurrentImageIndex(0);
-        });
-      });
+    try {
+      likeProfile(currentProfile.uid);
+      if (currentProfile.city === "Jaipur") {
+        setMatched(true);
+      }
+    } catch (error) {
+      console.error("Error liking profile:", error);
     }
-  };
 
-  const handleDislike = () => {
-    setDisliked(true);
-    Animated.parallel([
-      Animated.timing(dislikeOverlayOpacity, {
-        toValue: 0.9,
-        duration: 300,
+    Animated.sequence([
+      Animated.timing(likeTextOpacity, {
+        toValue: 0.8,
+        duration: 400,
         useNativeDriver: true,
       }),
-      Animated.timing(dislikeTranslate, {
-        toValue: { x: 0, y: 0 },
-        duration: 300,
+      Animated.timing(likeTextOpacity, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(imageOpacity, {
+        toValue: 0,
+        duration: 0,
         useNativeDriver: true,
       }),
     ]).start(() => {
-      Animated.timing(dislikeOverlayOpacity, {
+      setLiked(false);
+      setCurrentProfileIndex(currentProfileIndex + 1);
+      setCurrentImageIndex(0);
+      imageOpacity.setValue(1); // Reset opacity for next profile
+    });
+  };
+
+  const handleDislike = () => {
+    Animated.sequence([
+      Animated.timing(imageOpacity, {
         toValue: 0,
-        duration: 300,
+        duration: 0,
         useNativeDriver: true,
-      }).start(() => {
-        setDisliked(false);
-        dislikeTranslate.setValue({ x: width, y: height });
-        setCurrentProfileIndex(currentProfileIndex + 1);
-        setCurrentImageIndex(0);
-      });
+      }),
+    ]).start(() => {
+      setCurrentProfileIndex(currentProfileIndex + 1);
+      setCurrentImageIndex(0);
+      imageOpacity.setValue(1); // Reset opacity for next profile
     });
   };
 
@@ -231,7 +303,7 @@ const HomeScreen = ({ navigation }) => {
     setShowMessagePopup(true);
     Animated.timing(messagePopupAnim, {
       toValue: height - 300,
-      duration: 300,
+      duration: 400,
       useNativeDriver: true,
     }).start();
   };
@@ -239,7 +311,7 @@ const HomeScreen = ({ navigation }) => {
   const closeMessage_popup = () => {
     Animated.timing(messagePopupAnim, {
       toValue: height,
-      duration: 300,
+      duration: 400,
       useNativeDriver: true,
     }).start(() => setShowMessagePopup(false));
   };
@@ -247,30 +319,6 @@ const HomeScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground source={bg1} style={styles.container}>
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              backgroundColor: "rgba(255, 0, 0, 1)",
-              opacity: likeOverlayOpacity,
-            },
-          ]}
-        />
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              backgroundColor: "rgba(88, 208, 255, 0.92)",
-              opacity: dislikeOverlayOpacity,
-              transform: [
-                { translateX: dislikeTranslate.x },
-                { translateY: dislikeTranslate.y },
-              ],
-            },
-          ]}
-        />
         <GestureHandlerRootView>
           <View style={styles.navbar}>
             <SideNavBar navigation={navigation} />
@@ -302,25 +350,20 @@ const HomeScreen = ({ navigation }) => {
               style={styles.loader}
             />
           ) : (
-            <PanGestureHandler onGestureEvent={onPanGestureEvent}>
-              <View style={styles.imageContainer}>
-                <TouchableOpacity
-                  activeOpacity={1}
-                  onPress={handleImageTap}
-                  style={[styles.touchableImage, { position: "relative" }]}
-                >
-                  <Animated.Image
+            <View style={styles.imageContainer}>
+              {/* Next profile (background) */}
+              {nextProfile && (
+                <View style={[styles.touchableImage, { position: "absolute" }]}>
+                  <Image
                     source={{
                       uri:
-                        currentProfile.images &&
-                        currentProfile.images[currentImageIndex]
-                          ? currentProfile.images[currentImageIndex]
-                          : "https://via.placeholder.com/300", // Fallback image
+                        nextProfile.images && nextProfile.images[0]
+                          ? nextProfile.images[0]
+                          : DEFAULT_IMAGE,
                     }}
-                    style={[styles.profileImage, { opacity: imageOpacity }]}
-                    cachePolicy="memory-disk" // Cache profile images
+                    style={styles.profileImage}
+                    cachePolicy="memory-disk"
                   />
-
                   <LinearGradient
                     colors={["rgba(0, 0, 0, 0.5)", "transparent"]}
                     style={styles.bottomInfoContainer}
@@ -328,51 +371,127 @@ const HomeScreen = ({ navigation }) => {
                     end={{ x: 0.5, y: 0 }}
                   >
                     <Text style={styles.name}>
-                      {currentProfile.name || "Unknown"},{" "}
-                      {currentProfile.dob
-                        ? CalculateAge(currentProfile.dob)
-                        : "N/A"}
+                      {nextProfile.username || "Unknown"},{" "}
+                      {nextProfile.dob ? CalculateAge(nextProfile.dob) : "N/A"}
                     </Text>
                     <View
                       style={{ display: "flex", flexDirection: "row", gap: 6 }}
                     >
                       <Text style={styles.datingType}>
-                        {currentProfile.datingType || "N/A"}
+                        {nextProfile.datingType || "N/A"}
                       </Text>
                     </View>
                     <Text style={styles.location}>
-                      📍 Lives in {currentProfile.city || "Unknown"}
+                      📍 Lives in {nextProfile.city || "Unknown"}
                     </Text>
                   </LinearGradient>
-                </TouchableOpacity>
-                <View style={styles.indicators}>
-                  {currentProfile.images &&
-                    currentProfile.images.map((_, index) => (
-                      <View
-                        key={index}
-                        style={[
-                          styles.indicator,
-                          index === currentImageIndex
-                            ? styles.activeIndicator
-                            : null,
-                        ]}
-                      />
-                    ))}
                 </View>
+              )}
 
-                <TouchableOpacity
-                  style={[styles.button, styles.userDetailIcon]}
-                  onPress={() => openProfile(currentProfile)}
+              {/* Current profile (foreground) */}
+              {currentProfile && (
+                <PanGestureHandler
+                  onGestureEvent={onPanGestureEvent}
+                  onHandlerStateChange={onHandlerStateChange}
                 >
-                  <Text style={styles.buttonText}>
-                    <Image
-                      style={{ width: 50, height: 50 }}
-                      source={require("../assets/photos/detail.png")}
+                  <Animated.View
+                    style={{
+                      ...styles.touchableImage,
+                      transform: [
+                        { translateX: pan.x },
+                        { translateY: pan.y },
+                        { rotate: rotate },
+                      ],
+                    }}
+                  >
+                    <TouchableOpacity
+                      activeOpacity={1}
+                      onPress={handleImageTap}
+                      style={{ position: "relative" }}
+                    >
+                      <Animated.Image
+                        source={{
+                          uri:
+                            currentProfile.images &&
+                            currentProfile.images[currentImageIndex]
+                              ? currentProfile.images[currentImageIndex]
+                              : DEFAULT_IMAGE,
+                        }}
+                        style={{
+                          ...styles.profileImage,
+                          opacity: imageOpacity,
+                        }}
+                        cachePolicy="memory-disk"
+                      />
+
+                      <Animated.View
+                        style={{
+                          ...styles.likeTextOverlay,
+                          opacity: likeTextOpacityInterpolate,
+                        }}
+                      >
+                        <Text style={styles.likeText}>LIKE</Text>
+                      </Animated.View>
+
+                      <LinearGradient
+                        colors={["rgba(0, 0, 0, 0.5)", "transparent"]}
+                        style={styles.bottomInfoContainer}
+                        start={{ x: 0.5, y: 0.5 }}
+                        end={{ x: 0.5, y: 0 }}
+                      >
+                        <Text style={styles.name}>
+                          {currentProfile.username || "Unknown"},{" "}
+                          {currentProfile.dob
+                            ? CalculateAge(currentProfile.dob)
+                            : "N/A"}
+                        </Text>
+                        <View
+                          style={{
+                            display: "flex",
+                            flexDirection: "row",
+                            gap: 6,
+                          }}
+                        >
+                          <Text style={styles.datingType}>
+                            {currentProfile.datingType || "N/A"}
+                          </Text>
+                        </View>
+                        <Text style={styles.location}>
+                          📍 Lives in {currentProfile.city || "Unknown"}
+                        </Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </Animated.View>
+                </PanGestureHandler>
+              )}
+
+              <View style={styles.indicators}>
+                {currentProfile.images &&
+                  currentProfile.images.map((_, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.indicator,
+                        index === currentImageIndex
+                          ? styles.activeIndicator
+                          : null,
+                      ]}
                     />
-                  </Text>
-                </TouchableOpacity>
+                  ))}
               </View>
-            </PanGestureHandler>
+
+              <TouchableOpacity
+                style={[styles.button, styles.userDetailIcon]}
+                onPress={() => openProfile(currentProfile)}
+              >
+                <Text style={styles.buttonText}>
+                  <Image
+                    style={{ width: 50, height: 50 }}
+                    source={require("../assets/photos/detail.png")}
+                  />
+                </Text>
+              </TouchableOpacity>
+            </View>
           )}
 
           <View style={styles.buttonContainer}>
@@ -406,38 +525,12 @@ const HomeScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          {liked && (
-            <Animated.View
-              style={[
-                styles.likeOverlay,
-                {
-                  transform: [
-                    { translateY: likeTranslateY },
-                    { scale: likeScale },
-                  ],
-                },
-              ]}
-            >
-              <Image source={loveImage} style={{ width: 100, height: 100 }} />
-            </Animated.View>
-          )}
-
-          {liked && matched && (
-            <MatchPopup
-              onClose={() => {
-                setMatched(false);
-                setCurrentProfileIndex(currentProfileIndex + 1);
-                setCurrentImageIndex(0);
-              }}
-            />
-          )}
-
           {showMessagePopup && (
             <Animated.View
-              style={[
-                styles.messagePopup,
-                { transform: [{ translateY: messagePopupAnim }] },
-              ]}
+              style={{
+                ...styles.messagePopup,
+                transform: [{ translateY: messagePopupAnim }],
+              }}
             >
               <Text style={styles.popupTitle}>Send a Message</Text>
               <Text style={styles.prefilledMessage}>
@@ -445,13 +538,13 @@ const HomeScreen = ({ navigation }) => {
               </Text>
               <TouchableOpacity
                 style={styles.sendButton}
-                onPress={closeMessagePopup}
+                onPress={closeMessage_popup}
               >
                 <Text style={styles.sendButtonText}>Send</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.closeButton}
-                onPress={closeMessagePopup}
+                onPress={closeMessage_popup}
               >
                 <Text style={styles.closeButtonText}>Close</Text>
               </TouchableOpacity>
@@ -471,6 +564,7 @@ const HomeScreen = ({ navigation }) => {
   );
 };
 
+// Styles remain unchanged
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -488,6 +582,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    position: "relative",
   },
   touchableImage: {
     width: width * 0.95,
@@ -497,6 +592,22 @@ const styles = StyleSheet.create({
     width: width * 0.95,
     height: height * 0.65,
     borderRadius: 12,
+  },
+  likeTextOverlay: {
+    position: "absolute",
+    top: 20,
+    right: 20,
+    padding: 10,
+    borderWidth: 2,
+    borderColor: "#00FF00",
+    borderRadius: 10,
+    transform: [{ rotate: "20deg" }],
+  },
+  likeText: {
+    fontSize: 40,
+    fontWeight: "bold",
+    color: "#00FF00",
+    textAlign: "center",
   },
   indicators: {
     flexDirection: "row",
@@ -584,12 +695,6 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 30,
-  },
-  likeOverlay: {
-    position: "absolute",
-    width: "100%",
-    alignItems: "center",
-    zIndex: 10,
   },
   messagePopup: {
     position: "absolute",

@@ -7,10 +7,14 @@ import {
   StyleSheet,
   FlatList,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import Modal from "react-native-modal";
-import * as ImagePicker from "expo-image-picker"; 
-import { deleteImageFromServer, uploadImageToServer } from "../../controller/UserController";
+import * as ImagePicker from "expo-image-picker";
+import {
+  deleteImageFromServer,
+  uploadImageToServer,
+} from "../../controller/UserController";
 
 const MAX_IMAGES = 6;
 
@@ -19,20 +23,27 @@ const ProfileImageUpdater = ({
   closeModal,
   existingPhotos = [],
 }) => {
-  const [images, setImages] = useState([]);
-  const [imageUrls, setImageUrls] = useState(existingPhotos); // URLs of existing images
+  const [imageUrls, setImageUrls] = useState(existingPhotos);
   const [loading, setLoading] = useState(false);
 
-  const combinedImages = [...existingPhotos, ...images].slice(0, MAX_IMAGES);
-
   useEffect(() => {
-    setImages([]);  // Reset images when modal is closed or opened
-  }, [isModalVisible]);
+    if (isModalVisible) {
+      setImageUrls(existingPhotos);
+    }
+  }, [isModalVisible, existingPhotos]);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      alert("Permission to access media library is required!");
+      Alert.alert("Permission Denied", "Media library access is required.");
+      return;
+    }
+
+    if (imageUrls.length >= MAX_IMAGES) {
+      Alert.alert(
+        "Limit Reached",
+        `You can upload up to ${MAX_IMAGES} images.`
+      );
       return;
     }
 
@@ -43,83 +54,65 @@ const ProfileImageUpdater = ({
       quality: 1,
     });
 
-    if (!result.canceled) {
-      const uri = result.assets ? result.assets[0].uri : result.uri;
-      if (existingPhotos.length + images.length < MAX_IMAGES) {
-        try {
-          setLoading(true);
-          const uploadedImageUrl = await uploadImageToServer(uri);
-          setImages((prev) => [...prev, uploadedImageUrl]);
-        } catch (error) {
-          Alert.alert("Error", error.message || "Failed to upload image");
-        } finally {
-          setLoading(false);
+    if (!result.canceled && result.assets?.length > 0) {
+      const uri = result.assets[0].uri; 
+
+      try {
+        setLoading(true);
+        const uploaded = await uploadImageToServer(uri);
+        const uploadedUrl = uploaded?.data?.images?.[0];
+
+        if (uploadedUrl) {
+          const updated = [...imageUrls, uploadedUrl];
+          setImageUrls(updated);
+        } else {
+          Alert.alert("Upload Failed", "No image returned from server.");
         }
-      } else {
-        Alert.alert("Limit Exceeded", "You can upload up to 9 images only.");
+      } catch (error) {
+        console.error("Upload errorrrr:", error);
+        Alert.alert(
+          "Upload Error",
+          error?.response?.data?.message || error.message || "Upload failed."
+        );
+      } finally {
+        setLoading(false);
       }
     }
   };
 
-  const handleUpdateProfile = () => {
-    Alert.alert("Profile updated!");
-    closeModal();
-  };
-
-  const handleRemoveImage = async (index) => {
-    const isFromExisting = index < existingPhotos.length;
+  const handleRemoveImage = async (imageUrl, index) => {
     try {
-      if (isFromExisting) {
-        const imageId = existingPhotos[index].id; // Assuming your images have an `id` for deletion
-        const success = await deleteImageFromServer(imageId);
-        if (success) {
-          Alert.alert("Success", "Image deleted successfully!");
-          return;
-        } else {
-          Alert.alert("Error", "Failed to delete image.");
-        }
+      const success = await deleteImageFromServer(imageUrl);
+      if (success) {
+        const updated = [...imageUrls];
+        updated.splice(index, 1);
+        setImageUrls(updated);
       } else {
-        const adjustedIndex = index - existingPhotos.length;
-        const updatedImages = [...images];
-        updatedImages.splice(adjustedIndex, 1);
-        setImages(updatedImages);
+        Alert.alert("Delete Error", "Failed to delete image.");
       }
     } catch (error) {
-      Alert.alert("Error", error.message || "Failed to delete image");
+      Alert.alert("Error", error?.message || "Failed to delete image.");
     }
   };
 
-  const renderImageGrid = () => {
-    const placeholders = [...combinedImages];
-    while (placeholders.length < MAX_IMAGES) {
-      placeholders.push(null);
-    }
-
-    return (
-      <FlatList
-        data={placeholders}
-        numColumns={3}
-        keyExtractor={(_, index) => index.toString()}
-        renderItem={({ item, index }) =>
-          item ? (
-            <View style={styles.imageContainer}>
-              <Image source={{ uri: item }} style={styles.image} />
-              <TouchableOpacity
-                style={styles.removeButton}
-                onPress={() => handleRemoveImage(index)}
-              >
-                <Text style={styles.removeButtonText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity style={styles.placeholder} onPress={pickImage}>
-              <Text style={styles.plusIcon}>+</Text>
-            </TouchableOpacity>
-          )
-        }
-      />
-    );
-  };
+  const renderImageGrid = () => (
+    <FlatList
+      data={imageUrls}
+      numColumns={3}
+      keyExtractor={(_, index) => index.toString()}
+      renderItem={({ item, index }) => (
+        <View style={styles.imageContainer}>
+          <Image source={{ uri: item }} style={styles.image} />
+          <TouchableOpacity
+            style={styles.removeButton}
+            onPress={() => handleRemoveImage(item, index)}
+          >
+            <Text style={styles.removeButtonText}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    />
+  );
 
   return (
     <Modal
@@ -129,13 +122,22 @@ const ProfileImageUpdater = ({
     >
       <View style={styles.modalContent}>
         <Text style={styles.modalTitle}>Update Profile Images</Text>
-        {loading && <Text>Uploading...</Text>}
+        {loading && <ActivityIndicator size="small" color="#0000ff" />}
         {renderImageGrid()}
+
         <TouchableOpacity
-          onPress={handleUpdateProfile}
-          style={styles.updateButton}
+          style={[
+            styles.uploadButton,
+            imageUrls.length >= MAX_IMAGES && { opacity: 0.5 },
+          ]}
+          onPress={pickImage}
+          disabled={imageUrls.length >= MAX_IMAGES}
         >
-          <Text style={styles.updateButtonText}>Update Profile</Text>
+          <Text style={styles.uploadButtonText}>Upload New</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={closeModal} style={styles.updateButton}>
+          <Text style={styles.updateButtonText}>Close</Text>
         </TouchableOpacity>
       </View>
     </Modal>
@@ -212,6 +214,28 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 14,
     lineHeight: 18,
+  },
+  uploadButton: {
+    marginTop: 15,
+    paddingVertical: 10,
+    backgroundColor: "#28a745",
+    borderRadius: 5,
+    alignItems: "center",
+  },
+  uploadButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  updateButton: {
+    marginTop: 10,
+    paddingVertical: 10,
+    backgroundColor: "#007bff",
+    borderRadius: 5,
+    alignItems: "center",
+  },
+  updateButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
   },
 });
 
