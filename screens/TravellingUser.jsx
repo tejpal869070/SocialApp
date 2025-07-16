@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,14 +7,13 @@ import {
   Image,
   TouchableOpacity,
   TextInput,
+  ActivityIndicator,
 } from "react-native";
-import { Picker } from "@react-native-picker/picker";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { initialUsers } from "../assets/Data/TravelUser";
 import AddTravelDetail from "../componentes/AddTravelDetail";
+import { getAllBetweenCitiesTrips, getAllWithinCitiesTrips } from "../controller/UserController";
 
-const cities = ["All Cities", "Jaipur", "Delhi", "Mumbai", "Bangalore"];
-
+ 
 const UserCard = ({ user, isBetweenCities }) => {
   const [showDetail, setShowDetail] = useState(false);
 
@@ -55,11 +54,11 @@ const UserCard = ({ user, isBetweenCities }) => {
         </TouchableOpacity>
       </View>
 
-      {/* <TouchableOpacity style={styles.detailButton} onPress={toggleDetail}>
+      <TouchableOpacity style={styles.detailButton} onPress={toggleDetail}>
         <Text style={styles.detailButtonText}>
           {showDetail ? "Hide Details" : "Show Details"}
         </Text>
-      </TouchableOpacity> */}
+      </TouchableOpacity>
 
       {showDetail && (
         <View style={styles.detailContainer}>
@@ -73,19 +72,59 @@ const UserCard = ({ user, isBetweenCities }) => {
 export default function TravellingUser() {
   const [selectedCity, setSelectedCity] = useState("All Cities");
   const [activeTab, setActiveTab] = useState("Cities");
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true); // Track if there are more items to load
+  const [loadedData, setLoadedData] = useState({
+    "Between Cities": [],
+    "Guider/Turister": [],
+  });
 
-  const filteredUsers = initialUsers.filter((user) =>
+  // Fetch data from API based on the active tab and current page
+  const fetchData = async (tab, page) => {
+    setLoading(true);
+    let newUsers = [];
+    try {
+      if (tab === "Cities") {
+        newUsers = await getAllBetweenCitiesTrips(page); // API for Between Cities
+      } else if (tab === "Guider") {
+        newUsers = await getAllWithinCitiesTrips(page); // API for Guider/Turister
+      }
+      setLoading(false);
+      return newUsers;
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const loadData = async () => {
+      const newUsers = await fetchData(activeTab, page);
+      setLoadedData((prevData) => ({
+        ...prevData,
+        [activeTab]: [...prevData[activeTab], ...newUsers],
+      }));
+      setUsers((prev) => [...prev, ...newUsers]);
+      setHasMore(newUsers.length > 0);
+    };
+
+    loadData();
+  }, [activeTab, page]);
+
+  // Handle scroll load more functionality
+  const handleEndReached = () => {
+    if (loading || !hasMore) return;
+    setPage((prev) => prev + 1); // Increase page number to load more data
+  };
+
+  const filteredUsers = loadedData[activeTab]?.filter((user) =>
     selectedCity === "All Cities"
       ? true
       : user.type === "Between Cities"
       ? user.from === selectedCity || user.to === selectedCity
       : user.city === selectedCity
-  );
-
-  const users = filteredUsers.filter((user) =>
-    activeTab === "Cities"
-      ? user.type === "Between Cities"
-      : user.type === "Guider/Turister"
   );
 
   return (
@@ -105,7 +144,12 @@ export default function TravellingUser() {
           <TouchableOpacity
             key={tab}
             style={[styles.tab, activeTab === tab && styles.activeTab]}
-            onPress={() => setActiveTab(tab)}
+            onPress={() => {
+              setActiveTab(tab);
+              setUsers(loadedData[tab] || []);
+              setPage(1);
+              setHasMore(true); // Reset 'hasMore' when switching tabs
+            }}
           >
             <Text
               style={[
@@ -119,7 +163,7 @@ export default function TravellingUser() {
         ))}
       </View>
       <FlatList
-        data={users}
+        data={  filteredUsers}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <UserCard user={item} isBetweenCities={activeTab === "Cities"} />
@@ -127,8 +171,14 @@ export default function TravellingUser() {
         ListEmptyComponent={
           <Text style={styles.emptyText}>No users found</Text>
         }
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          loading ? (
+            <ActivityIndicator size="large" color="#000" />
+          ) : null
+        }
       />
-
       <AddTravelDetail />
     </View>
   );

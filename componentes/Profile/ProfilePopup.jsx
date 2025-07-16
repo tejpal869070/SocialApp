@@ -16,6 +16,7 @@ import Swiper from "react-native-swiper";
 import fbicon from "../../assets/photos/facebook.png";
 import phoneicon from "../../assets/photos/iphone.png";
 import { RequestPhoneNumberPopup } from "../Popups";
+import { CalculateAge } from "../../controller/ReusableFunction";
 
 const { width, height } = Dimensions.get("window");
 
@@ -85,7 +86,8 @@ const ProfilePopup = ({ isVisible, onClose, match, onMessage, onBlock }) => {
 
             {/* Basic Info */}
             <Text style={styles.name}>
-              {match.name}, {match.age}
+              {match.username},{" "}
+              {match.dob ? CalculateAge(match.dob) : "N/A"}
             </Text>
             <Text style={styles.city}>📍 {match.city}</Text>
             <Text style={styles.bio}>"{match.bio}"</Text>
@@ -136,7 +138,7 @@ const ProfilePopup = ({ isVisible, onClose, match, onMessage, onBlock }) => {
               {profileDetails.map(({ label, value }, i) => (
                 <View key={i} style={styles.detailRow}>
                   <Text style={styles.label}>{label}</Text>
-                  <Text style={styles.value}>{value || "N/A"}</Text>
+                  <Text style={styles.value}>{value || "_"}</Text>
                 </View>
               ))}
             </View>
@@ -155,7 +157,7 @@ const ProfilePopup = ({ isVisible, onClose, match, onMessage, onBlock }) => {
                 <Text style={styles.buttonText}>Message</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={[styles.button, styles.blockButton]}
                 onPress={() => {
                   if (onBlock) onBlock(match);
@@ -163,7 +165,7 @@ const ProfilePopup = ({ isVisible, onClose, match, onMessage, onBlock }) => {
                 }}
               >
                 <Text style={styles.buttonText}>Block</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
 
               <TouchableOpacity
                 style={[styles.button, styles.closeButton]}

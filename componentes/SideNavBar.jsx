@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     paddingTop: 20,
     paddingHorizontal: 20,
-    zIndex: 999,
+    zIndex: 99999,
     shadowColor: "#000",
     shadowOffset: { width: 2, height: 0 },
     shadowOpacity: 0.3,

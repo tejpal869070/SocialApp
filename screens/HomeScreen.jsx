@@ -1,5 +1,11 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useState, useEffect, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   View,
   Text,
@@ -28,20 +34,19 @@ import { CalculateAge } from "../controller/ReusableFunction";
 import { LinearGradient } from "expo-linear-gradient";
 import { GetFeedData, likeProfile } from "../controller/UserController";
 
-// Default image URL for when user images are unavailable
 const DEFAULT_IMAGE = "https://via.placeholder.com/300?text=No+Image";
 
-// Preload images
 const preloadImages = async (profiles) => {
   const imageUrls = profiles.flatMap(
-    (profile) => profile.images || [DEFAULT_IMAGE]
+    (profile) => profile.images?.filter(Boolean) || [DEFAULT_IMAGE]
   );
   try {
     await Promise.all(
       imageUrls.map((url) =>
-        Image.prefetch(url).catch((error) =>
-          console.warn(`Failed to prefetch image: ${url}`, error)
-        )
+        Image.prefetch(url).catch((error) => {
+          console.warn(`Failed to prefetch image: ${url}`, error);
+          return Promise.resolve();
+        })
       )
     );
     console.log("Images preloaded successfully");
@@ -62,33 +67,43 @@ const HomeScreen = ({ navigation }) => {
   const [hasMore, setHasMore] = useState(true);
   const [liked, setLiked] = useState(false);
   const [showMessagePopup, setShowMessagePopup] = useState(false);
-  const [matched, setMatched] = useState(false);
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
+  const [showLikeEffect, setShowLikeEffect] = useState(false);
 
   const pan = useRef(new Animated.ValueXY()).current;
   const messagePopupAnim = useRef(new Animated.Value(height)).current;
   const imageOpacity = useRef(new Animated.Value(1)).current;
   const likeTextOpacity = useRef(new Animated.Value(0)).current;
+  const likeButtonScale = useRef(new Animated.Value(1)).current;
 
   const currentProfile = profiles[currentProfileIndex] || {};
   const nextProfile = profiles[currentProfileIndex + 1] || {};
 
-  // Interpolate opacity for LIKE text based on right swipe
-  const likeTextOpacityInterpolate = pan.x.interpolate({
-    inputRange: [0, width / 2],
-    outputRange: [0, 0.8],
-    extrapolate: "clamp",
-  });
+  const likeTextOpacityInterpolate = useMemo(
+    () =>
+      pan.x.interpolate({
+        inputRange: [0, width / 7],
+        outputRange: [0, 0.8],
+        extrapolate: "clamp",
+      }),
+    [pan.x]
+  );
 
-  // Interpolate rotation for swipe, pivoting from top-left corner
-  const rotate = pan.x.interpolate({
-    inputRange: [-width / 2, 0, width / 2],
-    outputRange: ["-10deg", "0deg", "10deg"],
-    extrapolate: "clamp",
-  });
+  useEffect(() => {
+    likeTextOpacity.setValue(0);
+  }, [currentProfileIndex]);
 
-  // Fetch profiles and preload images
+  const rotate = useMemo(
+    () =>
+      pan.x.interpolate({
+        inputRange: [-width / 2, 0, width / 2],
+        outputRange: ["-10deg", "0deg", "10deg"],
+        extrapolate: "clamp",
+      }),
+    [pan.x]
+  );
+
   useEffect(() => {
     const loadProfiles = async () => {
       if (loading || !hasMore) return;
@@ -108,213 +123,220 @@ const HomeScreen = ({ navigation }) => {
       }
     };
     loadProfiles();
-  }, [page]);
+  }, [page, hasMore]);
 
-  // Prefetch next batch when nearing the end
   useEffect(() => {
     if (currentProfileIndex >= profiles.length - 3 && hasMore && !loading) {
       setPage((prev) => prev + 1);
     }
   }, [currentProfileIndex, profiles.length, hasMore, loading]);
 
-  const closeProfile = () => {
+  const closeProfile = useCallback(() => {
     setModalVisible(false);
     setSelectedProfile(null);
-  };
+  }, []);
 
-  const openProfile = (match) => {
+  const openProfile = useCallback((match) => {
     setSelectedProfile(match);
     setModalVisible(true);
-  };
+  }, []);
 
-  const animateImageChange = (newIndex) => {
-    Animated.timing(imageOpacity, {
-      toValue: 0,
-      duration: 150,
-      useNativeDriver: true,
-    }).start(() => {
-      setCurrentImageIndex(newIndex);
+  const animateImageChange = useCallback(
+    (newIndex) => {
       Animated.timing(imageOpacity, {
-        toValue: 1,
+        toValue: 0,
         duration: 150,
         useNativeDriver: true,
-      }).start();
-    });
-  };
+      }).start(() => {
+        setCurrentImageIndex(newIndex);
+        Animated.timing(imageOpacity, {
+          toValue: 1,
+          duration: 150,
+          useNativeDriver: true,
+        }).start();
+      });
+    },
+    [imageOpacity]
+  );
 
-  const handleImageTap = (event) => {
-    const { locationX } = event.nativeEvent;
-    const halfWidth = width / 2;
+  const handleImageTap = useCallback(
+    (event) => {
+      const { locationX } = event.nativeEvent;
+      const halfWidth = width / 2;
 
-    if (locationX < halfWidth && currentImageIndex > 0) {
-      animateImageChange(currentImageIndex - 1);
-    } else if (
-      locationX >= halfWidth &&
-      currentProfile.images &&
-      currentImageIndex < currentProfile.images.length - 1
-    ) {
-      animateImageChange(currentImageIndex + 1);
-    }
-  };
+      if (locationX < halfWidth && currentImageIndex > 0) {
+        animateImageChange(currentImageIndex - 1);
+      } else if (
+        locationX >= halfWidth &&
+        currentProfile.images &&
+        currentImageIndex < currentProfile.images.length - 1
+      ) {
+        animateImageChange(currentImageIndex + 1);
+      }
+    },
+    [currentImageIndex, currentProfile.images, animateImageChange]
+  );
 
   const onPanGestureEvent = Animated.event(
     [{ nativeEvent: { translationX: pan.x, translationY: pan.y } }],
     { useNativeDriver: true }
   );
 
-  const onHandlerStateChange = async (event) => {
-    if (event.nativeEvent.state === State.END) {
-      const { translationX } = event.nativeEvent;
+  const onHandlerStateChange = useCallback(
+    async (event) => {
+      if (event.nativeEvent.state === State.END) {
+        const { translationX } = event.nativeEvent;
 
-      if (translationX > SWIPE_THRESHOLD) {
-        // Swipe right: Like profile
-        setLiked(true);
-        try {
-          await likeProfile(currentProfile.uid);
-        } catch (error) {
-          console.error("Error liking profile:", error);
-        }
+        if (Math.abs(translationX) > SWIPE_THRESHOLD) {
+          const isLike = translationX > 0;
+          if (isLike) {
+            setLiked(true);
+            try {
+              likeProfile(currentProfile.uid).catch((error) => {
+                console.error("Error liking profile:", error);
+              });
+            } catch (error) {
+              console.error("Error liking profile:", error);
+            }
+          }
 
-        // Animate card off-screen to the right with spring
-        Animated.sequence([
-          Animated.parallel([
-            Animated.spring(pan, {
-              toValue: { x: width * 1.5, y: 0 },
-              friction: 8,
-              tension: 40,
-              useNativeDriver: true,
-            }),
-            Animated.timing(likeTextOpacity, {
-              toValue: 0,
-              duration: 400,
-              useNativeDriver: true,
-            }),
-          ]),
-          Animated.timing(imageOpacity, {
-            toValue: 0,
-            duration: 0,
+          Animated.timing(pan, {
+            toValue: { x: translationX > 0 ? width * 1.5 : -width * 1.5, y: 0 },
+            duration: 300,
             useNativeDriver: true,
-          }),
-        ]).start(() => {
-          // Update state after animation completes
-          setCurrentProfileIndex(currentProfileIndex + 1);
-          setCurrentImageIndex(0);
-          setLiked(false);
-          pan.setValue({ x: 0, y: 0 });
-          imageOpacity.setValue(1); // Reset opacity for next profile
-        });
-      } else if (translationX < -SWIPE_THRESHOLD) {
-        // Swipe left: Next profile
-        Animated.sequence([
-          Animated.parallel([
-            Animated.spring(pan, {
-              toValue: { x: -width * 1.5, y: 0 },
-              friction: 8,
-              tension: 40,
-              useNativeDriver: true,
-            }),
-            Animated.timing(likeTextOpacity, {
-              toValue: 0,
-              duration: 400,
-              useNativeDriver: true,
-            }),
-          ]),
-          Animated.timing(imageOpacity, {
-            toValue: 0,
-            duration: 0,
-            useNativeDriver: true,
-          }),
-        ]).start(() => {
-          // Update state after animation completes
-          setCurrentProfileIndex(currentProfileIndex + 1);
-          setCurrentImageIndex(0);
-          pan.setValue({ x: 0, y: 0 });
-          imageOpacity.setValue(1); // Reset opacity for next profile
-        });
-      } else {
-        // Reset card position with spring
-        Animated.parallel([
+          }).start(() => {
+            setCurrentProfileIndex((prev) => prev + 1);
+            setCurrentImageIndex(0);
+            setLiked(false);
+            pan.setValue({ x: 0, y: 0 });
+            imageOpacity.setValue(1);
+            likeTextOpacity.setValue(0);
+            likeButtonScale.setValue(1);
+          });
+        } else {
           Animated.spring(pan, {
             toValue: { x: 0, y: 0 },
-            friction: 8,
-            tension: 40,
+            velocity: 0.5,
+            tension: 60,
+            friction: 10,
             useNativeDriver: true,
-          }),
-          Animated.timing(likeTextOpacity, {
-            toValue: 0,
-            duration: 400,
-            useNativeDriver: true,
-          }),
-        ]).start();
+          }).start(() => {
+            likeTextOpacity.setValue(0);
+          });
+        }
       }
-    }
-  };
+    },
+    [pan, imageOpacity, likeTextOpacity, likeButtonScale, currentProfile.uid]
+  );
 
-  const handleLike = () => {
+  const handleLike = useCallback(() => {
     setLiked(true);
-    try {
-      likeProfile(currentProfile.uid);
-      if (currentProfile.city === "Jaipur") {
-        setMatched(true);
-      }
-    } catch (error) {
-      console.error("Error liking profile:", error);
-    }
+    setShowLikeEffect(true); // Trigger the like effect
 
-    Animated.sequence([
+    likeProfile(currentProfile.uid).catch((error) => {
+      console.error("Error liking profile:", error);
+    });
+
+    // Animate the like button and effect
+    Animated.parallel([
+      Animated.timing(likeButtonScale, {
+        toValue: 1.3,
+        duration: 100,
+        useNativeDriver: true,
+      }),
       Animated.timing(likeTextOpacity, {
         toValue: 0.8,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      Animated.timing(likeTextOpacity, {
-        toValue: 0,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      Animated.timing(imageOpacity, {
-        toValue: 0,
-        duration: 0,
+        duration: 200,
         useNativeDriver: true,
       }),
     ]).start(() => {
-      setLiked(false);
-      setCurrentProfileIndex(currentProfileIndex + 1);
-      setCurrentImageIndex(0);
-      imageOpacity.setValue(1); // Reset opacity for next profile
+      // After animation completes, hide the like effect and move to the next profile
+      Animated.parallel([
+        Animated.timing(likeButtonScale, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(likeTextOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pan, {
+          toValue: { x: width * 1.5, y: 0 },
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setCurrentProfileIndex((prev) => prev + 1);
+        setCurrentImageIndex(0);
+        setLiked(false);
+        setShowLikeEffect(false); // Hide the like effect
+        pan.setValue({ x: 0, y: 0 });
+        imageOpacity.setValue(1);
+        likeButtonScale.setValue(1);
+      });
     });
-  };
+  }, [currentProfile.uid, pan, imageOpacity, likeTextOpacity, likeButtonScale]);
 
-  const handleDislike = () => {
-    Animated.sequence([
-      Animated.timing(imageOpacity, {
-        toValue: 0,
-        duration: 0,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setCurrentProfileIndex(currentProfileIndex + 1);
+  const handleDislike = useCallback(() => {
+    Animated.timing(pan, {
+      toValue: { x: -width * 1.5, y: 0 },
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setCurrentProfileIndex((prev) => prev + 1);
       setCurrentImageIndex(0);
-      imageOpacity.setValue(1); // Reset opacity for next profile
+      pan.setValue({ x: 0, y: 0 });
+      imageOpacity.setValue(1);
     });
-  };
+  }, [pan, imageOpacity]);
 
-  const handleMessage = () => {
+  const handleSuperLike = useCallback(() => {
+    // Implement super like logic if needed
+    console.log("Super like pressed");
+  }, []);
+
+  const handleNext = useCallback(() => {
+    // Implement next profile logic if needed
+    setCurrentProfileIndex((prev) => prev + 1);
+    setCurrentImageIndex(0);
+    pan.setValue({ x: 0, y: 0 });
+    imageOpacity.setValue(1);
+  }, [pan, imageOpacity]);
+
+  const handleMessage = useCallback(() => {
     setShowMessagePopup(true);
     Animated.timing(messagePopupAnim, {
       toValue: height - 300,
-      duration: 400,
+      duration: 300,
       useNativeDriver: true,
     }).start();
-  };
+  }, [messagePopupAnim]);
 
-  const closeMessage_popup = () => {
+  const closeMessage_popup = useCallback(() => {
     Animated.timing(messagePopupAnim, {
       toValue: height,
-      duration: 400,
+      duration: 300,
       useNativeDriver: true,
     }).start(() => setShowMessagePopup(false));
-  };
+  }, [messagePopupAnim]);
+
+  const currentProfileImage = useMemo(
+    () =>
+      currentProfile.images && currentProfile.images[currentImageIndex]
+        ? currentProfile.images[currentImageIndex]
+        : DEFAULT_IMAGE,
+    [currentProfile.images, currentImageIndex]
+  );
+
+  const nextProfileImage = useMemo(
+    () =>
+      nextProfile.images && nextProfile.images[0]
+        ? nextProfile.images[0]
+        : DEFAULT_IMAGE,
+    [nextProfile.images]
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -343,187 +365,186 @@ const HomeScreen = ({ navigation }) => {
             <ProfileFilter />
           </View>
 
-          {profiles.length === 0 && loading ? (
-            <ActivityIndicator
-              size="large"
-              color="#0000ff"
-              style={styles.loader}
-            />
-          ) : (
-            <View style={styles.imageContainer}>
-              {/* Next profile (background) */}
-              {nextProfile && (
-                <View style={[styles.touchableImage, { position: "absolute" }]}>
-                  <Image
-                    source={{
-                      uri:
-                        nextProfile.images && nextProfile.images[0]
-                          ? nextProfile.images[0]
-                          : DEFAULT_IMAGE,
-                    }}
-                    style={styles.profileImage}
-                    cachePolicy="memory-disk"
-                  />
-                  <LinearGradient
-                    colors={["rgba(0, 0, 0, 0.5)", "transparent"]}
-                    style={styles.bottomInfoContainer}
-                    start={{ x: 0.5, y: 0.5 }}
-                    end={{ x: 0.5, y: 0 }}
+          <LinearGradient
+            colors={["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]}
+            start={{ x: 0.5, y: 1 }}
+            end={{ x: 0.5, y: 0 }}
+            locations={[0, 0.9]}
+            style={[styles.fullScreenContainer, { height: height * 0.5 }]}
+          >
+            {profiles.length === 0 && loading ? (
+              <ActivityIndicator
+                size="large"
+                color="#0000ff"
+                style={styles.loader}
+              />
+            ) : (
+              <View style={styles.imageContainer}>
+                {/* Next profile (background) */}
+                {nextProfile && (
+                  <View
+                    style={[styles.touchableImage, { position: "absolute" }]}
                   >
-                    <Text style={styles.name}>
-                      {nextProfile.username || "Unknown"},{" "}
-                      {nextProfile.dob ? CalculateAge(nextProfile.dob) : "N/A"}
-                    </Text>
-                    <View
-                      style={{ display: "flex", flexDirection: "row", gap: 6 }}
+                    <Image
+                      source={{ uri: nextProfileImage }}
+                      style={styles.profileImage}
+                      cachePolicy="memory-disk"
+                      contentFit="cover"
+                    />
+                    <LinearGradient
+                      colors={["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0)"]}
+                      style={[
+                        styles.bottomInfoContainer,
+                        { bottom: height * 0.13 },
+                      ]}
+                      start={{ x: 0.5, y: 1 }}
+                      end={{ x: 0.5, y: 0 }}
+                      locations={[0, 1]} // Make sure it's completely transparent
                     >
-                      <Text style={styles.datingType}>
-                        {nextProfile.datingType || "N/A"}
+                      <Text style={styles.name}>
+                        {nextProfile.username || "Unknown"}{" "}
+                        {nextProfile.dob
+                          ? CalculateAge(nextProfile.dob)
+                          : "N/A"}
                       </Text>
-                    </View>
-                    <Text style={styles.location}>
-                      📍 Lives in {nextProfile.city || "Unknown"}
-                    </Text>
-                  </LinearGradient>
-                </View>
-              )}
+                      <Text style={styles.location}>
+                        📍 {currentProfile.city || "N/A"}
+                      </Text>
+                    </LinearGradient>
+                  </View>
+                )}
 
-              {/* Current profile (foreground) */}
-              {currentProfile && (
-                <PanGestureHandler
-                  onGestureEvent={onPanGestureEvent}
-                  onHandlerStateChange={onHandlerStateChange}
-                >
-                  <Animated.View
-                    style={{
-                      ...styles.touchableImage,
-                      transform: [
-                        { translateX: pan.x },
-                        { translateY: pan.y },
-                        { rotate: rotate },
-                      ],
-                    }}
+                {/* Current profile (foreground) */}
+                {currentProfile && (
+                  <PanGestureHandler
+                    onGestureEvent={onPanGestureEvent}
+                    onHandlerStateChange={onHandlerStateChange}
                   >
-                    <TouchableOpacity
-                      activeOpacity={1}
-                      onPress={handleImageTap}
-                      style={{ position: "relative" }}
+                    <Animated.View
+                      style={{
+                        ...styles.touchableImage,
+                        transform: [
+                          { translateX: pan.x },
+                          { translateY: pan.y },
+                          { rotate },
+                        ],
+                        zIndex: 1,
+                      }}
                     >
-                      <Animated.Image
-                        source={{
-                          uri:
-                            currentProfile.images &&
-                            currentProfile.images[currentImageIndex]
-                              ? currentProfile.images[currentImageIndex]
-                              : DEFAULT_IMAGE,
-                        }}
-                        style={{
-                          ...styles.profileImage,
-                          opacity: imageOpacity,
-                        }}
-                        cachePolicy="memory-disk"
-                      />
-
-                      <Animated.View
-                        style={{
-                          ...styles.likeTextOverlay,
-                          opacity: likeTextOpacityInterpolate,
-                        }}
+                      <TouchableOpacity
+                        activeOpacity={1}
+                        onPress={handleImageTap}
+                        style={{ position: "relative" }}
                       >
-                        <Text style={styles.likeText}>LIKE</Text>
-                      </Animated.View>
-
-                      <LinearGradient
-                        colors={["rgba(0, 0, 0, 0.5)", "transparent"]}
-                        style={styles.bottomInfoContainer}
-                        start={{ x: 0.5, y: 0.5 }}
-                        end={{ x: 0.5, y: 0 }}
-                      >
-                        <Text style={styles.name}>
-                          {currentProfile.username || "Unknown"},{" "}
-                          {currentProfile.dob
-                            ? CalculateAge(currentProfile.dob)
-                            : "N/A"}
-                        </Text>
-                        <View
+                        <Animated.Image
+                          source={{ uri: currentProfileImage }}
                           style={{
-                            display: "flex",
-                            flexDirection: "row",
-                            gap: 6,
+                            ...styles.profileImage,
+                            opacity: imageOpacity,
+                          }}
+                          cachePolicy="memory-disk"
+                          contentFit="cover"
+                        />
+
+                        <Animated.View
+                          style={{
+                            ...styles.likeTextOverlay,
+                            opacity: likeTextOpacityInterpolate,
                           }}
                         >
-                          <Text style={styles.datingType}>
-                            {currentProfile.datingType || "N/A"}
+                          <Image
+                            source={require("../assets/photos/like-text-effect-png.png")}
+                            style={{ width: 200, height: 200 }}
+                          />
+                        </Animated.View>
+
+                        <LinearGradient
+                          colors={[
+                            "rgba(255, 255, 255, 0)",
+                            "rgba(0, 0, 0, 0)",
+                          ]}
+                          start={{ x: 0.5, y: 1 }}
+                          end={{ x: 0.5, y: 0 }}
+                          style={styles.bottomInfoContainer}
+                          locations={[0, 0.8]} // Smooth fade to transparent
+                        >
+                          <Text style={styles.name}>
+                            {currentProfile.username || "Unknown"}{" "}
+                            {currentProfile.dob
+                              ? CalculateAge(currentProfile.dob)
+                              : "N/A"}
                           </Text>
-                        </View>
-                        <Text style={styles.location}>
-                          📍 Lives in {currentProfile.city || "Unknown"}
-                        </Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  </Animated.View>
-                </PanGestureHandler>
-              )}
+                          <Text style={styles.location}>
+                            📍 {currentProfile.city || "N/A"}
+                          </Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    </Animated.View>
+                  </PanGestureHandler>
+                )}
 
-              <View style={styles.indicators}>
-                {currentProfile.images &&
-                  currentProfile.images.map((_, index) => (
-                    <View
-                      key={index}
-                      style={[
-                        styles.indicator,
-                        index === currentImageIndex
-                          ? styles.activeIndicator
-                          : null,
-                      ]}
-                    />
-                  ))}
+                <View style={styles.indicators}>
+                  {currentProfile.images &&
+                    currentProfile.images.map((_, index) => (
+                      <View
+                        key={index}
+                        style={[
+                          styles.indicator,
+                          index === currentImageIndex
+                            ? styles.activeIndicator
+                            : null,
+                        ]}
+                      />
+                    ))}
+                </View>
               </View>
+            )}
 
+            <View style={styles.buttonContainer}>
               <TouchableOpacity
-                style={[styles.button, styles.userDetailIcon]}
-                onPress={() => openProfile(currentProfile)}
+                style={[styles.actionButton, { backgroundColor: "white" }]}
+                onPress={handleDislike}
               >
-                <Text style={styles.buttonText}>
-                  <Image
-                    style={{ width: 50, height: 50 }}
-                    source={require("../assets/photos/detail.png")}
-                  />
-                </Text>
+                <Text style={styles.actionButtonText}>❌</Text>
               </TouchableOpacity>
-            </View>
-          )}
 
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.button} onPress={handleMessage}>
-              <Text style={styles.buttonText}>
-                <Image
-                  style={{ width: 37, height: 37 }}
-                  source={require("../assets/photos/chat-bubble.png")}
-                />
-              </Text>
-            </TouchableOpacity>
-            <View
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 6,
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
               <TouchableOpacity
-                style={[styles.button, { width: 90, height: 90 }]}
+                style={[
+                  styles.actionButton,
+                  {
+                    width: 100,
+                    height: 100,
+                    backgroundColor: liked ? "white" : "black",
+                    borderRadius: 600,
+                    padding: 8,
+                  },
+                ]}
                 onPress={handleLike}
               >
-                <Text style={[styles.buttonText, { fontSize: 50 }]}>❤️</Text>
+                <Animated.Text
+                  style={[
+                    styles.actionButtonText,
+                    {
+                      fontSize: 70,
+                      transform: [{ scale: likeButtonScale }],
+                      color: liked ? "#00FF00" : "#FFF",
+                    },
+                  ]}
+                >
+                  {liked ? "❤️" : "💚"}
+                </Animated.Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: "white" }]}
+                onPress={() => openProfile(currentProfile)}
+              >
+                <Image
+                  style={{ width: 50, height: 50 }}
+                  source={require("../assets/photos/detail.png")}
+                />
               </TouchableOpacity>
             </View>
-
-            <TouchableOpacity style={styles.button} onPress={handleDislike}>
-              <Text style={styles.buttonText}>❌</Text>
-            </TouchableOpacity>
-          </View>
+          </LinearGradient>
 
           {showMessagePopup && (
             <Animated.View
@@ -564,15 +585,27 @@ const HomeScreen = ({ navigation }) => {
   );
 };
 
-// Styles remain unchanged
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#000", // Dark background like Tinder
   },
-  header: {
-    padding: 20,
+  fullScreenContainer: {
+    flex: 1,
+    width: "100%",
+  },
+  navbar: {
+    height: 80,
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: "#FF5555",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    zIndex: 10,
   },
   logo: {
     width: 100,
@@ -583,24 +616,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     position: "relative",
+    width: width,
+    height: height,
   },
   touchableImage: {
-    width: width * 0.95,
-    height: height * 0.65,
+    width: width,
+    height: height,
   },
   profileImage: {
-    width: width * 0.95,
-    height: height * 0.65,
-    borderRadius: 12,
+    width: width,
+    height: height * 0.95,
+    borderRadius: 0,
   },
   likeTextOverlay: {
     position: "absolute",
-    top: 20,
-    right: 20,
-    padding: 10,
-    borderWidth: 2,
-    borderColor: "#00FF00",
-    borderRadius: 10,
+    top: height * 0.2,
+    left: width * 0.05,
+    paddingHorizontal: 20,
+    // borderWidth: 2,
+    // borderColor: "#00FF00",
+    // borderRadius: 10,
     transform: [{ rotate: "20deg" }],
   },
   likeText: {
@@ -612,89 +647,73 @@ const styles = StyleSheet.create({
   indicators: {
     flexDirection: "row",
     position: "absolute",
-    top: 10,
+    top: 20,
   },
   indicator: {
-    width: 20,
-    height: 5,
+    width: 8,
+    height: 8,
     backgroundColor: "#ccc",
-    marginHorizontal: 3,
-    borderRadius: 2,
+    marginHorizontal: 4,
+    borderRadius: 4,
   },
   activeIndicator: {
-    backgroundColor: "#666",
+    backgroundColor: "#fff",
   },
   bottomInfoContainer: {
     position: "absolute",
-    bottom: 0,
+    bottom: height * 0.08,
     left: 0,
     right: 0,
-    padding: 10,
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
+    padding: 20,
+    height: 160,
   },
   statusContainer: {
     flexDirection: "row",
-    marginBottom: 10,
+    marginBottom: 5,
   },
   status: {
-    backgroundColor: "#34C759",
-    borderRadius: 15,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    marginRight: 10,
-  },
-  statusText: {
+    fontSize: 14,
     color: "#fff",
-    fontSize: 12,
+    backgroundColor: "rgba(0, 255, 0, 0.2)",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    overflow: "hidden",
   },
   name: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: "bold",
     color: "#fff",
+    marginBottom: 5,
   },
   location: {
-    fontSize: 16,
+    fontSize: 18,
     color: "#fff",
-    marginVertical: 5,
-  },
-  distance: {
-    fontSize: 16,
-    color: "#fff",
-  },
-  datingType: {
-    borderRadius: 60,
-    color: "white",
-    paddingVertical: 3,
   },
   buttonContainer: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    justifyContent: "space-evenly",
     alignItems: "center",
-    padding: 20,
+    paddingVertical: 20,
+    position: "absolute",
+    bottom: 0,
+    width: width,
+    backgroundColor: "transparent",
+    zIndex: 1,
+    height: 150,
   },
-  button: {
+  actionButton: {
     width: 60,
     height: 60,
-    borderRadius: 60,
-    backgroundColor: "#fff",
+    borderRadius: 30,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
     elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
   },
-  userDetailIcon: {
-    position: "absolute",
-    bottom: 20,
-    right: 10,
-    elevation: 10,
-    borderRadius: 60,
-  },
-  buttonText: {
+  actionButtonText: {
     fontSize: 30,
+    color: "#fff",
   },
   messagePopup: {
     position: "absolute",
@@ -737,50 +756,9 @@ const styles = StyleSheet.create({
     color: "#666",
     fontSize: 16,
   },
-  navbar: {
-    height: 80,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#FF5555",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    zIndex: 10,
-  },
-  sidebarBackdrop: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    zIndex: 99,
-  },
-  sidebar: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: 0,
-    width: width * 0.7,
-    backgroundColor: "#fff",
-    paddingTop: 60,
-    paddingHorizontal: 20,
-  },
-  sidebarTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 20,
-  },
-  sidebarItem: {
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  sidebarText: {
-    fontSize: 18,
+  loader: {
+    flex: 1,
+    justifyContent: "center",
   },
 });
 

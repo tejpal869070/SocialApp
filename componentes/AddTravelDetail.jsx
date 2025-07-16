@@ -11,7 +11,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import DropDownPicker from "react-native-dropdown-picker";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
-import { GetCities } from "../controller/UserController";
+import { GetCities, postTravelDetails } from "../controller/UserController";
+import { ErrorPopup, SuccessPopup2 } from "./Popups";
 
 const AddTravelDetail = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -31,12 +32,14 @@ const AddTravelDetail = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
 
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
+
   const fetchCities = async () => {
     try {
       const arr = await GetCities();
       setCityList(arr.map((c) => ({ label: c.name, value: c.id })));
-    } catch (e) {
-      console.log(e.response?.data || e.message);
+    } catch (e) { 
     }
   };
 
@@ -52,7 +55,7 @@ const AddTravelDetail = () => {
   const getCityLabelById = (id) =>
     cityList.find((item) => item.value === id)?.label || "";
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (
       travelType === "Between cities" &&
       (!fromCity || !toCity || !selectedDate || !description)
@@ -69,18 +72,35 @@ const AddTravelDetail = () => {
       return;
     }
 
+    // Map travelType to the desired format before submitting
+    const mappedTravelType =
+      travelType === "Between cities" ? "between_cities" : "city";
+
     const data = {
-      travelType,
-      fromCity:
-        travelType === "Between cities" ? getCityLabelById(fromCity) : null,
-      toCity: travelType === "Between cities" ? getCityLabelById(toCity) : null,
-      city: travelType === "Particular city" ? getCityLabelById(city) : null,
-      date: selectedDate.toISOString().split("T")[0],
+      travel_type: mappedTravelType, // Use mapped value
+      from_city:
+        mappedTravelType === "between_cities"
+          ? getCityLabelById(fromCity)
+          : null,
+      to_city:
+        mappedTravelType === "between_cities"
+          ? getCityLabelById(toCity)
+          : getCityLabelById(city),
+      travel_date: selectedDate.toISOString().split("T")[0],
       description,
     };
+ 
 
-    console.log("Submitting data:", data);
+    try {
+      await postTravelDetails(data);
+      setSuccess(true);
+      setError("");
+    } catch (error) {
+      console.log(error.response.data)
+      setError(error?.response?.data?.message || "Error! Please try again.");
+    }
 
+    // Reset all fields
     setFromCity(null);
     setToCity(null);
     setCity(null);
@@ -204,7 +224,7 @@ const AddTravelDetail = () => {
                   onChangeText={setDescription}
                   multiline
                 />
-                                                             
+
                 <TouchableOpacity
                   style={styles.submitButton}
                   onPress={handleSubmit}
@@ -223,6 +243,9 @@ const AddTravelDetail = () => {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+
+      {error && <ErrorPopup error={error} onClose={() => setError("")} />}
+      {success && <SuccessPopup2 onClose={() => setSuccess(false)} />}
     </>
   );
 };

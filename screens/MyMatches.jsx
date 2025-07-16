@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#333",
     textAlign: "center",
-    fontStyle : "italic"
+    fontStyle: "italic",
   },
   likedItem: {
     flexDirection: "row",
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#333",
-    fontStyle : "italic"
+    fontStyle: "italic",
   },
   likedDetail: {
     fontSize: 14,

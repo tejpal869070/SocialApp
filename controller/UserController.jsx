@@ -329,3 +329,81 @@ export const getSingleUserDetail = async (id) => {
 
   return response.data;
 };
+
+// add between cities trip detail
+export const postTravelDetails = async (formData) => {
+  const token = await AsyncStorage.getItem("token");
+  const email = await AsyncStorage.getItem("email");
+
+  const data_to_send = {
+    email: email,
+    travel_type: formData.travel_type,
+    from_city:
+      formData.travel_type === "between_cities"
+        ? formData.from_city
+        : formData.to_city,
+    to_city: formData.to_city || "",
+    travel_date: formData.travel_date,
+    description: formData.description,
+  };
+
+  const axiosConfig = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+
+  const response = await axios.post(
+    `${API.api_url}user/add-travel-details`,
+    data_to_send,
+    axiosConfig
+  );
+
+  console.log("first", response.data);
+  return response.data;
+};
+
+// get between cities trips
+export const getAllBetweenCitiesTrips = async (page) => {
+  const token = await AsyncStorage.getItem("token");
+  const email = await AsyncStorage.getItem("email");
+
+  const data_to_send = {
+    email: email,
+    page: page,
+  };
+  const axiosConfig = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+  const response = await axios.get(
+    `${API.api_url}user/get-all-between-cities-trip`,
+    {
+      data_to_send,
+      axiosConfig,
+    }
+  );
+  return response.data;
+};
+
+// get within cities trips
+export const getAllWithinCitiesTrips = async (page) => {
+  const token = await AsyncStorage.getItem("token");
+  const email = await AsyncStorage.getItem("email");
+
+  const data_to_send = {
+    email: email,
+    page: page,
+  };
+  const axiosConfig = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+  const response = await axios.get(`${API.api_url}user/get-all-city-trip`, {
+    data_to_send,
+    axiosConfig,
+  });
+  return response.data;
+};
