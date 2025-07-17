@@ -28,11 +28,11 @@ import bg1 from "../assets/photos/app-bg-7.jpg";
 import SideNavBar from "../componentes/SideNavBar";
 import ProfileFilter from "../componentes/ProfileFilter";
 import MatchPopup from "../componentes/HaveMatch";
-import crown from "../assets/photos/crown.png";
-import ProfilePopup from "../componentes/Profile/ProfilePopup";
+import crown from "../assets/photos/crown.png"; 
 import { CalculateAge } from "../controller/ReusableFunction";
 import { LinearGradient } from "expo-linear-gradient";
 import { GetFeedData, likeProfile } from "../controller/UserController";
+import HomeProfilePopup from "../componentes/Profile/HomeProfilePopup";
 
 const DEFAULT_IMAGE = "https://via.placeholder.com/300?text=No+Image";
 
@@ -576,7 +576,7 @@ const HomeScreen = ({ navigation }) => {
 
       <StatusBar style="dark" />
 
-      <ProfilePopup
+      <HomeProfilePopup
         isVisible={isModalVisible}
         match={selectedProfile}
         onClose={closeProfile}

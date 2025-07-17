@@ -1,4 +1,10 @@
-import React, { useState } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import {
   View,
   Text,
@@ -10,11 +16,12 @@ import {
   ImageBackground,
   TextInput,
   Pressable,
+  ActivityIndicator,
 } from "react-native";
 import { TabView, SceneMap, TabBar } from "react-native-tab-view";
-import { matches, whoLikedMeData } from "../assets/Data/Matches";
 import ProfilePopup from "../componentes/Profile/ProfilePopup";
 import messageIcon from "../assets/photos/message.png";
+import { getLikedByMe, getWhoLikedMe } from "../controller/UserController";
 
 const { width } = Dimensions.get("window");
 const itemSpacing = 10;
@@ -22,54 +29,170 @@ const itemsPerRow = 3;
 const totalSpacing = (itemsPerRow + 1) * itemSpacing;
 const itemWidth = (width - totalSpacing) / itemsPerRow;
 
-const MatchesTab = ({ openProfile, searchText }) => {
-  const filteredMatches = matches.filter((match) =>
-    match.name.toLowerCase().includes(searchText.toLowerCase())
+const calculateAge = (dob) => {
+  const birthDate = new Date(dob);
+  const age = new Date().getFullYear() - birthDate.getFullYear();
+  const monthDifference = new Date().getMonth() - birthDate.getMonth();
+
+  if (
+    monthDifference < 0 ||
+    (monthDifference === 0 && new Date().getDate() < birthDate.getDate())
+  ) {
+    return age - 1;
+  }
+
+  return age;
+};
+
+const LikedByMeTab = ({ openProfile, searchText }) => {
+  const [likedByMeData, setLikedByMeData] = useState([]);
+  const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const didMountRef = useRef(false);
+
+  const fetchLikedByMe = async (pageNum, isRefresh = false) => {
+    if (isLoading || (!hasMore && !isRefresh)) return;
+
+    setIsLoading(true);
+    const data = await getLikedByMe(pageNum);
+    const validData = data.filter(
+      (item) => item && item.user_id && item.username && item.images
+    );
+    setLikedByMeData((prev) =>
+      isRefresh ? validData : [...prev, ...validData]
+    );
+    setHasMore(data.length > 0);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    if (!didMountRef.current) {
+      fetchLikedByMe(1, true);
+      didMountRef.current = true;
+    }
+  }, []);
+
+  const filteredLikedByMe = likedByMeData.filter((match) =>
+    match?.username?.toLowerCase().includes(searchText.toLowerCase())
   );
 
-  const renderMatchItem = ({ item }) => (
+  const loadMore = () => {
+    if (!isLoading && hasMore) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchLikedByMe(nextPage);
+    }
+  };
+
+  const renderFooter = () => {
+    if (isLoading) {
+      return (
+        <ActivityIndicator size="large" color="black" style={styles.loader} />
+      );
+    }
+    if (!hasMore && filteredLikedByMe.length > 0) {
+      return <Text style={styles.noDataText}>No more data</Text>;
+    }
+    return null;
+  };
+
+  const renderLikedByMeItem = ({ item }) => (
     <TouchableOpacity
       style={[styles.matchItem, { width: itemWidth }]}
       onPress={() => openProfile(item)}
     >
-      <Image source={{ uri: item.images[0] }} style={styles.matchImage} />
+      <Image source={{ uri: item.images }} style={styles.matchImage} />
       <Text style={styles.matchName}>
-        {item.name}, {item.age}
+        {item.username || "Unknown"},{" "}
+        {item.dob ? calculateAge(item.dob) : "N/A"}
       </Text>
     </TouchableOpacity>
   );
 
   return (
     <FlatList
-      data={filteredMatches}
-      renderItem={renderMatchItem}
-      keyExtractor={(item) => item.id}
+      data={filteredLikedByMe}
+      renderItem={renderLikedByMeItem}
+      keyExtractor={(item) => item.user_id.toString()}
       numColumns={itemsPerRow}
       contentContainerStyle={styles.gridContainer}
       showsVerticalScrollIndicator={false}
+      onEndReached={loadMore}
+      onEndReachedThreshold={0.5}
+      ListFooterComponent={renderFooter}
     />
   );
 };
 
 const WhoLikedMeTab = ({ openProfile, searchText }) => {
-  const likedMatches = whoLikedMeData.filter((item) =>
-    item.name.toLowerCase().includes(searchText.toLowerCase())
+  const [whoLikedMeData, setWhoLikedMeData] = useState([]);
+  const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const didMountRef = useRef(false);
+
+  const fetchWhoLikedMe = async (pageNum, isRefresh = false) => {
+    if (isLoading || (!hasMore && !isRefresh)) return;
+
+    setIsLoading(true);
+    const data = await getWhoLikedMe(pageNum);
+    const validData = data.filter(
+      (item) => item && item.user_id && item.username && item.images
+    );
+    setWhoLikedMeData((prev) =>
+      isRefresh ? validData : [...prev, ...validData]
+    );
+    setHasMore(data.length > 0);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    if (!didMountRef.current) {
+      fetchWhoLikedMe(1, true);
+      didMountRef.current = true;
+    }
+  }, []);
+
+  const filteredWhoLikedMe = whoLikedMeData.filter((item) =>
+    item?.username?.toLowerCase().includes(searchText.toLowerCase())
   );
+
+  const loadMore = () => {
+    if (!isLoading && hasMore) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchWhoLikedMe(nextPage);
+    }
+  };
+
+  const renderFooter = () => {
+    if (isLoading) {
+      return (
+        <ActivityIndicator size="large" color="black" style={styles.loader} />
+      );
+    }
+    if (!hasMore && filteredWhoLikedMe.length > 0) {
+      return <Text style={styles.noDataText}>No more data</Text>;
+    }
+    return null;
+  };
 
   const renderLikedItem = ({ item }) => (
     <View style={styles.likedItem}>
       <TouchableOpacity onPress={() => openProfile(item)}>
-        <Image source={{ uri: item.images[0] }} style={styles.likedImage} />
+        <Image source={{ uri: item.images }} style={styles.likedImage} />
       </TouchableOpacity>
       <View style={styles.likedInfo}>
-        <Text style={styles.likedName}>{item.name}</Text>
+        <Text style={styles.likedName}>{item.username || "Unknown"}</Text>
         <Text style={styles.likedDetail}>
-          Age: {item.age} • 📍{item.city}
+          Age: {item.dob ? calculateAge(item.dob) : "N/A"} • 📍
+          {item.city || "Unknown"}
         </Text>
       </View>
       <Pressable>
         <Image
-          alt="sd"
+          alt="message"
           source={messageIcon}
           style={{ width: 40, height: 40 }}
         />
@@ -79,11 +202,14 @@ const WhoLikedMeTab = ({ openProfile, searchText }) => {
 
   return (
     <FlatList
-      data={likedMatches}
+      data={filteredWhoLikedMe}
       renderItem={renderLikedItem}
-      keyExtractor={(item) => item.id}
+      keyExtractor={(item) => item.user_id.toString()}
       contentContainerStyle={styles.listContainer}
       showsVerticalScrollIndicator={false}
+      onEndReached={loadMore}
+      onEndReachedThreshold={0.5}
+      ListFooterComponent={renderFooter}
     />
   );
 };
@@ -94,28 +220,32 @@ const MyMatches = ({ navigation }) => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [index, setIndex] = useState(0);
   const [routes] = useState([
-    { key: "matches", title: "All Matches" },
+    { key: "likedByMe", title: "Liked By Me" },
     { key: "whoLikedMe", title: "Who Liked Me" },
   ]);
 
-  const openProfile = (match) => {
+  const openProfile = useCallback((match) => {
     setSelectedMatch(match);
     setModalVisible(true);
-  };
+  }, []);
 
   const closeProfile = () => {
     setModalVisible(false);
     setSelectedMatch(null);
   };
 
-  const renderScene = SceneMap({
-    matches: () => (
-      <MatchesTab openProfile={openProfile} searchText={searchText} />
-    ),
-    whoLikedMe: () => (
-      <WhoLikedMeTab openProfile={openProfile} searchText={searchText} />
-    ),
-  });
+  const renderScene = useMemo(
+    () =>
+      SceneMap({
+        likedByMe: () => (
+          <LikedByMeTab openProfile={openProfile} searchText={searchText} />
+        ),
+        whoLikedMe: () => (
+          <WhoLikedMeTab openProfile={openProfile} searchText={searchText} />
+        ),
+      }),
+    [searchText]
+  );
 
   return (
     <ImageBackground
@@ -152,8 +282,8 @@ const MyMatches = ({ navigation }) => {
 
       <ProfilePopup
         isVisible={isModalVisible}
-        match={selectedMatch}
         onClose={closeProfile}
+        user_id={selectedMatch?.user_id}
       />
     </ImageBackground>
   );

@@ -1,240 +1,256 @@
 import React, { useState, useEffect } from "react";
 import {
   View,
-  Text,
+  Modal,
   TouchableOpacity,
   Image,
+  Text,
   StyleSheet,
-  FlatList,
+  Dimensions,
   Alert,
-  ActivityIndicator,
 } from "react-native";
-import Modal from "react-native-modal";
 import * as ImagePicker from "expo-image-picker";
+import Icon from "react-native-vector-icons/MaterialIcons";
 import {
   deleteImageFromServer,
   uploadImageToServer,
 } from "../../controller/UserController";
 
-const MAX_IMAGES = 6;
+const { width } = Dimensions.get("window");
+const IMAGE_WIDTH = (width - 90) / 3;
+const IMAGE_HEIGHT = IMAGE_WIDTH * (5 / 4);
+const EDIT_IMAGE_WIDTH = width - 40;
+const EDIT_IMAGE_HEIGHT = EDIT_IMAGE_WIDTH * (5 / 4);
 
 const ProfileImageUpdater = ({
   isModalVisible,
   closeModal,
-  existingPhotos = [],
+  existingPhotos,
 }) => {
-  const [imageUrls, setImageUrls] = useState(existingPhotos);
-  const [loading, setLoading] = useState(false);
+  const [images, setImages] = useState(existingPhotos || []);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const maxImages = 6;
 
   useEffect(() => {
-    if (isModalVisible) {
-      setImageUrls(existingPhotos);
-    }
-  }, [isModalVisible, existingPhotos]);
+    setImages(existingPhotos || []);
+  }, [existingPhotos]);
 
   const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Permission Denied", "Media library access is required.");
+    if (images.length >= maxImages) {
+      Alert.alert(
+        "Limit Reached",
+        `You can only add up to ${maxImages} images.`
+      );
       return;
     }
 
-    if (imageUrls.length >= MAX_IMAGES) {
-      Alert.alert(
-        "Limit Reached",
-        `You can upload up to ${MAX_IMAGES} images.`
-      );
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert("Permission Required", "Please allow access to your photos.");
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 5],
       quality: 1,
+      allowsEditing : true,
+      aspect: [4, 5],
     });
 
-    if (!result.canceled && result.assets?.length > 0) {
-      const uri = result.assets[0].uri; 
-
+    if (!result.canceled) {
       try {
-        setLoading(true);
-        const uploaded = await uploadImageToServer(uri);
-        const uploadedUrl = uploaded?.data?.images?.[0];
-
-        if (uploadedUrl) {
-          const updated = [...imageUrls, uploadedUrl];
-          setImageUrls(updated);
-        } else {
-          Alert.alert("Upload Failed", "No image returned from server.");
+        const response = await uploadImageToServer(result.assets[0].uri); 
+        if (response?.data?.images && response?.data?.images.length > 0) {
+          setImages((prevImages) => [...prevImages, response?.data?.images[0]]);
         }
       } catch (error) {
-        console.error("Upload errorrrr:", error);
-        Alert.alert(
-          "Upload Error",
-          error?.response?.data?.message || error.message || "Upload failed."
-        );
-      } finally {
-        setLoading(false);
+        Alert.alert("Error", "Failed to upload image. Please try again.");
       }
     }
   };
+ 
 
-  const handleRemoveImage = async (imageUrl, index) => {
-    try {
-      const success = await deleteImageFromServer(imageUrl);
-      if (success) {
-        const updated = [...imageUrls];
-        updated.splice(index, 1);
-        setImageUrls(updated);
-      } else {
-        Alert.alert("Delete Error", "Failed to delete image.");
-      }
-    } catch (error) {
-      Alert.alert("Error", error?.message || "Failed to delete image.");
-    }
+  const handleDeleteImage = async (imageUrl) => {
+    Alert.alert("Delete Image", "Are you sure you want to delete this image?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteImageFromServer(imageUrl);
+            setImages((prevImages) =>
+              prevImages.filter((img) => img !== imageUrl)
+            );
+          } catch (error) {
+            Alert.alert("Error", "Failed to delete image. Please try again.");
+          }
+        },
+      },
+    ]);
   };
 
-  const renderImageGrid = () => (
-    <FlatList
-      data={imageUrls}
-      numColumns={3}
-      keyExtractor={(_, index) => index.toString()}
-      renderItem={({ item, index }) => (
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: item }} style={styles.image} />
-          <TouchableOpacity
-            style={styles.removeButton}
-            onPress={() => handleRemoveImage(item, index)}
-          >
-            <Text style={styles.removeButtonText}>✕</Text>
+  const renderEditView = () => (
+    <View style={styles.editOverlay}>
+      <View style={styles.editContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setSelectedImage(null)}>
+            <Icon name="close" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
-      )}
-    />
+        <Image source={{ uri: selectedImage }} style={styles.editImage} />
+      </View>
+    </View>
   );
 
   return (
     <Modal
-      isVisible={isModalVisible}
-      onBackdropPress={closeModal}
-      style={styles.modal}
+      visible={isModalVisible}
+      transparent
+      animationType="fade"
+      onRequestClose={closeModal}
     >
-      <View style={styles.modalContent}>
-        <Text style={styles.modalTitle}>Update Profile Images</Text>
-        {loading && <ActivityIndicator size="small" color="#0000ff" />}
-        {renderImageGrid()}
-
-        <TouchableOpacity
-          style={[
-            styles.uploadButton,
-            imageUrls.length >= MAX_IMAGES && { opacity: 0.5 },
-          ]}
-          onPress={pickImage}
-          disabled={imageUrls.length >= MAX_IMAGES}
-        >
-          <Text style={styles.uploadButtonText}>Upload New</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={closeModal} style={styles.updateButton}>
-          <Text style={styles.updateButtonText}>Close</Text>
-        </TouchableOpacity>
-      </View>
+      {selectedImage ? (
+        renderEditView()
+      ) : (
+        <View style={styles.modalOverlay}>
+          <View style={styles.popupContainer}>
+            <View style={styles.header}>
+              <Text style={styles.headerText}>Profile Photos</Text>
+              <TouchableOpacity onPress={closeModal}>
+                <Icon name="close" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.imageGrid}>
+              {images.map((image, index) => (
+                <View key={index} style={styles.imageContainer}>
+                  <TouchableOpacity onPress={() => setSelectedImage(image)}>
+                    <Image source={{ uri: image }} style={styles.image} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDeleteImage(image)}
+                  >
+                    <Icon name="close" size={20} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              {Array.from({ length: maxImages - images.length }).map(
+                (_, index) => (
+                  <TouchableOpacity
+                    key={`empty-${index}`}
+                    style={styles.emptyImageContainer}
+                    onPress={pickImage}
+                  >
+                    <Icon name="add" size={40} color="#888" />
+                  </TouchableOpacity>
+                )
+              )}
+            </View>
+          </View>
+        </View>
+      )}
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modal: { justifyContent: "center", alignItems: "center" },
-  modalContent: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 10,
-    width: "95%",
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  modalTitle: {
+  popupContainer: {
+    width: width - 40,
+    backgroundColor: "#1a1a1a",
+    borderRadius: 20,
+    padding: 20,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  headerText: {
     fontSize: 20,
     fontWeight: "bold",
-    marginBottom: 15,
-    alignSelf: "center",
+    color: "#fff",
   },
-  image: {
-    width: 90,
-    height: 110,
-    margin: 5,
-    borderRadius: 10,
-  },
-  placeholder: {
-    width: 90,
-    height: 110,
-    margin: 5,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderStyle: "dotted",
-    borderColor: "#ccc",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  plusIcon: {
-    fontSize: 28,
-    color: "#888",
-  },
-  updateButton: {
-    backgroundColor: "#2196F3",
-    padding: 12,
-    marginTop: 20,
-    borderRadius: 5,
-    alignSelf: "center",
-  },
-  updateButtonText: {
-    color: "white",
-    fontSize: 16,
+  imageGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
   },
   imageContainer: {
+    width: IMAGE_WIDTH,
+    height: IMAGE_HEIGHT,
+    marginBottom: 10,
     position: "relative",
-    width: 90,
-    height: 110,
-    margin: 5,
   },
-
-  removeButton: {
-    position: "absolute",
-    top: 0,
-    right: -6,
-    backgroundColor: "red",
+  image: {
+    width: "100%",
+    height: "100%",
     borderRadius: 10,
-    width: 20,
-    height: 20,
+    borderWidth: 1,
+    borderColor: "#333",
+  },
+  deleteButton: {
+    position: "absolute",
+    top: 5,
+    right: 5,
+    backgroundColor: "rgba(255, 0, 0, 0.7)",
+    borderRadius: 12,
+    padding: 2,
+  },
+  emptyImageContainer: {
+    width: IMAGE_WIDTH,
+    height: IMAGE_HEIGHT,
+    marginBottom: 10,
+    backgroundColor: "#333",
+    borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 1,
+    borderWidth: 1,
+    borderColor: "#444",
   },
-
-  removeButtonText: {
-    color: "white",
-    fontSize: 14,
-    lineHeight: 18,
-  },
-  uploadButton: {
-    marginTop: 15,
-    paddingVertical: 10,
-    backgroundColor: "#28a745",
-    borderRadius: 5,
+  editOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.9)",
+    justifyContent: "center",
     alignItems: "center",
   },
-  uploadButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  updateButton: {
-    marginTop: 10,
-    paddingVertical: 10,
-    backgroundColor: "#007bff",
-    borderRadius: 5,
+  editContainer: {
+    width: width - 40,
+    backgroundColor: "#1a1a1a",
+    borderRadius: 20,
+    padding: 20,
     alignItems: "center",
   },
-  updateButtonText: {
+  editImage: {
+    width: EDIT_IMAGE_WIDTH,
+    height: EDIT_IMAGE_HEIGHT,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#333",
+    marginBottom: 20,
+  },
+  replaceButton: {
+    backgroundColor: "#ff4d4d",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+  },
+  replaceButtonText: {
     color: "#fff",
+    fontSize: 16,
     fontWeight: "bold",
   },
 });

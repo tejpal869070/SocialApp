@@ -22,6 +22,8 @@ import { ErrorPopup } from "../componentes/Popups";
 import ProfileImageUpdater from "../componentes/Profile/ProfileImageUpdater";
 import ProfileDetailsList from "../componentes/Profile/ProfileDetailsList";
 import UpdateProfileDetails from "../componentes/Profile/UpdateProfileDetails";
+import maleImage from "../assets/photos/male.png";
+import femaleImage from "../assets/photos/female.png";
 
 const ProfileScreen = ({ navigation }) => {
   const [user, setUser] = useState({});
@@ -53,7 +55,7 @@ const ProfileScreen = ({ navigation }) => {
     city: user?.city,
     education: user?.education,
     profession: user?.profession,
-    eatingPreference: user?.eating_preference,
+    eating_preference: user?.eating_preference,
     drinking: user?.drinking,
     hobbies: user?.hobbies,
     dating_type: user?.dating_type,
@@ -89,20 +91,15 @@ const ProfileScreen = ({ navigation }) => {
           {/* Profile Header */}
           <View style={styles.swiperContainer}>
             <Image
-              source={{
-                uri: user?.images[0],
-              }}
+              source={
+                user?.images?.[0]
+                  ? { uri: user.images[0] }
+                  : user?.gender === "M"
+                  ? maleImage
+                  : femaleImage
+              }
               style={styles.profileImage}
             />
-            <Pressable
-              onPress={async () => {
-                await fetchUser();
-                setProfileImagePopup(true);
-              }}
-              style={styles.profileImageEditIcon}
-            >
-              <MaterialIcons name="edit" size={22} color="#fff" />
-            </Pressable>
           </View>
 
           {/* User Info */}
@@ -113,26 +110,56 @@ const ProfileScreen = ({ navigation }) => {
             >
               <Text style={styles.topName}>{user?.username || "User"}</Text>
               <Text style={styles.location}>
-                <Ionicons name="location-sharp" size={18} color="#ff6f61" />{" "}
+                <Ionicons name="location-sharp" size={18} color="#ff6f61" />
                 {userProfile.city}
               </Text>
             </LinearGradient>
 
-            <Text style={styles.bio}>
-              I like exploring new places and having real conversations. I enjoy
-              road trips, movies, and joking around.
-            </Text>
+            <View
+              style={{ flexDirection: "row", justifyContent: "space-between" }}
+            >
+              <Pressable
+                onPress={() => setProfileImagePopup(true)}
+                style={styles.infoButton}
+              >
+                <Text
+                  style={{
+                    textAlign: "center",
+                    fontSize: 16,
+                    fontWeight: "bold",
+                    color: "#fff",
+                  }}
+                >
+                  Edit Photos
+                </Text>
+              </Pressable>
+              <Pressable style={styles.infoButton}>
+                <Text
+                  style={{
+                    textAlign: "center",
+                    fontSize: 16,
+                    fontWeight: "bold",
+                    color: "#fff",
+                  }}
+                >
+                  Preview
+                </Text>
+              </Pressable>
+            </View>
           </View>
         </ImageBackground>
         {/* Personal Info */}
-        <ProfileDetailsList profile={userProfile} />
+        <ProfileDetailsList
+          profile={userProfile}
+          refreshData={() => fetchUser()}
+        />
       </ScrollView>
 
       <ProfileImageUpdater
         isModalVisible={profileImagePopup}
-        closeModal={() => {
+        closeModal={async () => {
           setProfileImagePopup(false);
-          fetchUser();
+          await fetchUser();
         }}
         existingPhotos={user?.images}
       />
@@ -157,7 +184,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   swiperContainer: {
-    height: 200,
+    // height: 200,
     width: "100%",
     borderRadius: 20,
     overflow: "hidden",
@@ -165,7 +192,7 @@ const styles = StyleSheet.create({
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 40,
+    marginTop: 80,
   },
   profileImage: {
     width: 150,
@@ -206,6 +233,14 @@ const styles = StyleSheet.create({
     color: "#333",
     marginBottom: 5,
     fontFamily: "System",
+  },
+  infoButton: {
+    borderRadius: 50,
+    padding: 8,
+    backgroundColor: "#b189fe",
+    width: "45%",
+    marginTop: 20,
+    paddingVertical: 10,
   },
   location: {
     fontSize: 16,

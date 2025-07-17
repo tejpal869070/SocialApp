@@ -235,6 +235,27 @@ export const deleteImageFromServer = async (imgUrl) => {
   return response.data;
 };
 
+// make image at first
+export const setProfileImageFirst = async (url) => {
+  const token = await AsyncStorage.getItem("token");
+  const email = await AsyncStorage.getItem("email");
+  const axiosConfig = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+  const data_to_send = {
+    email: email,
+    imagePath: url,
+  };
+  const response = await axios.post(
+    `${API.api_url}user/set-profile-image`,
+    data_to_send,
+    axiosConfig
+  );
+  return response.data;
+};
+
 // like a user
 export const likeProfile = async (userId) => {
   const token = await AsyncStorage.getItem("token");
@@ -266,54 +287,57 @@ export const likeProfile = async (userId) => {
 };
 
 // liked by me
-export const getLikedByMe = async () => {
+export const getLikedByMe = async (page) => {
   const token = await AsyncStorage.getItem("token");
   const email = await AsyncStorage.getItem("email");
 
   const data_to_send = {
     email: email,
+    page: page,
   };
   const axiosConfig = {
     headers: {
       Authorization: `Bearer ${token}`,
     },
   };
-  const response = await axios.get(`${API.api_url}user/users-liked-by-me`, {
+  const response = await axios.post(
+    `${API.api_url}user/users-liked-by-me`,
     data_to_send,
-    axiosConfig,
-  });
+    axiosConfig
+  );
   return response.data;
 };
 
 // who liked me
-export const getWhoLikedMe = async () => {
+export const getWhoLikedMe = async (page) => {
   const token = await AsyncStorage.getItem("token");
   const email = await AsyncStorage.getItem("email");
 
   const data_to_send = {
     email: email,
-    user_id: userId,
+    page: page,
   };
   const axiosConfig = {
     headers: {
       Authorization: `Bearer ${token}`,
     },
   };
-  const response = await axios.get(`${API.api_url}user/users-who-liked-me`, {
+  const response = await axios.post(
+    `${API.api_url}user/users-who-liked-me`,
     data_to_send,
-    axiosConfig,
-  });
+    axiosConfig
+  );
   return response.data;
 };
 
 // single user detail
-export const getSingleUserDetail = async (id) => {
+export const getSingleUserDetail = async (user_id) => {
   const token = await AsyncStorage.getItem("token");
   const email = await AsyncStorage.getItem("email");
 
   const data_to_send = {
     email: email,
-    user_id: id,
+    user_id: user_id,
   };
 
   const axiosConfig = {
@@ -322,10 +346,11 @@ export const getSingleUserDetail = async (id) => {
     },
   };
 
-  const response = await axios.get(`${API.api_url}user/get-user-profile`, {
+  const response = await axios.post(
+    `${API.api_url}user/get-user-profile`,
     data_to_send,
-    axiosConfig,
-  });
+    axiosConfig
+  );
 
   return response.data;
 };
@@ -377,12 +402,10 @@ export const getAllBetweenCitiesTrips = async (page) => {
       Authorization: `Bearer ${token}`,
     },
   };
-  const response = await axios.get(
+  const response = await axios.post(
     `${API.api_url}user/get-all-between-cities-trip`,
-    {
-      data_to_send,
-      axiosConfig,
-    }
+    data_to_send,
+    axiosConfig
   );
   return response.data;
 };
@@ -401,9 +424,35 @@ export const getAllWithinCitiesTrips = async (page) => {
       Authorization: `Bearer ${token}`,
     },
   };
-  const response = await axios.get(`${API.api_url}user/get-all-city-trip`, {
+  const response = await axios.post(
+    `${API.api_url}user/get-all-city-trip`,
     data_to_send,
-    axiosConfig,
-  });
+    axiosConfig
+  );
+  return response.data;
+};
+
+// change user details
+export const changeUserDetails = async (userDetails) => {
+  console.log(userDetails)
+  const token = await AsyncStorage.getItem("token");
+  const email = await AsyncStorage.getItem("email");
+
+  const axiosConfig = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+
+  const requestBody = {
+    ...userDetails,
+    email,
+  };
+
+  const response = await axios.post(
+    `${API.api_url}user/update-profile`,
+    requestBody,
+    axiosConfig
+  );
   return response.data;
 };

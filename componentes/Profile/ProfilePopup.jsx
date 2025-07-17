@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   StyleSheet,
   Animated,
   Dimensions,
-  Alert,
+  ActivityIndicator,
   Pressable,
 } from "react-native";
 import Modal from "react-native-modal";
@@ -17,35 +17,43 @@ import fbicon from "../../assets/photos/facebook.png";
 import phoneicon from "../../assets/photos/iphone.png";
 import { RequestPhoneNumberPopup } from "../Popups";
 import { CalculateAge } from "../../controller/ReusableFunction";
+import { getSingleUserDetail } from "../../controller/UserController";
 
 const { width, height } = Dimensions.get("window");
 
-const ProfilePopup = ({ isVisible, onClose, match, onMessage, onBlock }) => {
-  const [showMobileRequestPopup, setShowMobileRequestPopup] =
-    React.useState(false);
+const ProfilePopup = ({ isVisible, onClose, user_id }) => {
+  const [match, setMatch] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [showMobileRequestPopup, setShowMobileRequestPopup] = useState(false);
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (isVisible) {
+      fetchUserDetails();
       Animated.spring(scaleAnim, {
         toValue: 1,
         useNativeDriver: true,
       }).start();
     } else {
       scaleAnim.setValue(0);
+      setMatch(null);
     }
   }, [isVisible]);
 
-  if (!match) return null;
+  const fetchUserDetails = async () => {
+    if (!user_id) return;
+    try {
+      setLoading(true);
+      const response = await getSingleUserDetail(user_id);
+      setMatch(response);
+    } catch (error) {
+      console.error("Failed to fetch user details:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const profileDetails = [
-    { label: "Education", value: match.education },
-    { label: "Profession", value: match.profession },
-    { label: "Eating Preference", value: match.eatingPreference },
-    { label: "Drinking Preference", value: match.drinkingPreference },
-    { label: "Dating Type", value: match.datingType },
-    { label: "Hobbies", value: match.hobbies?.join(", ") },
-  ];
+  if (!isVisible) return null;
 
   return (
     <Modal
@@ -59,113 +67,99 @@ const ProfilePopup = ({ isVisible, onClose, match, onMessage, onBlock }) => {
         <Animated.View
           style={[styles.popupContainer, { transform: [{ scale: scaleAnim }] }]}
         >
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-          >
-            {/* Image swiper */}
-            <View style={styles.swiperContainer}>
-              <Swiper
-                style={styles.swiper}
-                showsPagination
-                loop
-                autoplayTimeout={4}
-                dotColor="rgba(255, 255, 255, 0.4)"
-                activeDotColor="#fff"
-              >
-                {(match.images || [match.image]).map((img, index) => (
-                  <Image
-                    key={index}
-                    source={{ uri: img }}
-                    style={styles.image}
-                    resizeMode="cover"
-                  />
-                ))}
-              </Swiper>
+          {loading || !match ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#000" />
+              <Text style={{ marginTop: 10 }}>Loading profile...</Text>
             </View>
+          ) : (
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+            >
+              {/* Image swiper */}
+              <View style={styles.swiperContainer}>
+                <Swiper
+                  style={styles.swiper}
+                  showsPagination
+                  loop
+                  autoplayTimeout={4}
+                  dotColor="rgba(255, 255, 255, 0.4)"
+                  activeDotColor="#fff"
+                >
+                  {(match.images || [match.image]).map((img, index) => (
+                    <Image
+                      key={index}
+                      source={{ uri: img }}
+                      style={styles.image}
+                      resizeMode="cover"
+                    />
+                  ))}
+                </Swiper>
+              </View>
 
-            {/* Basic Info */}
-            <Text style={styles.name}>
-              {match.username},{" "}
-              {match.dob ? CalculateAge(match.dob) : "N/A"}
-            </Text>
-            <Text style={styles.city}>📍 {match.city}</Text>
-            <Text style={styles.bio}>"{match.bio}"</Text>
+              {/* Basic Info */}
+              <Text style={styles.name}>
+                {match.username}, {match.dob ? CalculateAge(match.dob) : "N/A"}
+              </Text>
+              <Text style={styles.city}>📍 {match.city}</Text>
+              <Text style={styles.bio}>"{match.bio}"</Text>
 
-            {/* mobile */}
-            <View style={[styles.detailsContainer, { marginBottom: 0 }]}>
-              <View style={styles.detailRow}>
-                <Text style={styles.label}>Mobile</Text>
-                <View style={{ maxWidth: "100%" }}>
-                  <View style={[styles.value, { maxWidth: "100%" }]}>
-                    <Text>+918690*****</Text>
-                    <Pressable onPress={() => setShowMobileRequestPopup(true)}>
-                      <Text style={styles.requestButton}>Request to show</Text>
-                    </Pressable>
+              {/* Mobile Info */}
+              <View style={[styles.detailsContainer, { marginBottom: 0 }]}>
+                <View style={styles.detailRow}>
+                  <Text style={styles.label}>Mobile</Text>
+                  <View style={{ maxWidth: "100%" }}>
+                    <View style={[styles.value, { maxWidth: "100%" }]}>
+                      <Text>+918690*****</Text>
+                      <Pressable
+                        onPress={() => setShowMobileRequestPopup(true)}
+                      >
+                        <Text style={styles.requestButton}>
+                          Request to show
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.detailRow}>
+                  <Text style={styles.label}>Verified By</Text>
+                  <View style={[styles.value, styles.verifiedIcons]}>
+                    <Image source={fbicon} style={styles.icon} />
+                    <Image source={phoneicon} style={styles.icon} />
                   </View>
                 </View>
               </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.label}>Varified By</Text>
-                <View
-                  style={[
-                    styles.value,
-                    {
-                      display: "flex",
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 6,
-                    },
-                  ]}
-                >
-                  <Image
-                    alt="fb"
-                    source={fbicon}
-                    style={{ width: 20, height: 20 }}
-                  />
-                  <Image
-                    alt="fb"
-                    source={phoneicon}
-                    style={{ width: 20, height: 20 }}
-                  />
-                </View>
-              </View>
-            </View>
 
-            {/* List view details */}
-            <View style={styles.detailsContainer}>
-              {profileDetails.map(({ label, value }, i) => (
-                <View key={i} style={styles.detailRow}>
-                  <Text style={styles.label}>{label}</Text>
-                  <Text style={styles.value}>{value || "_"}</Text>
-                </View>
-              ))}
-            </View>
-          </ScrollView>
+              {/* Detailed Info List */}
+              <View style={styles.detailsContainer}>
+                {[
+                  { label: "Education", value: match.education },
+                  { label: "Profession", value: match.profession },
+                  { label: "Eating Preference", value: match.eatingPreference },
+                  {
+                    label: "Drinking Preference",
+                    value: match.drinkingPreference,
+                  },
+                  { label: "Dating Type", value: match.datingType },
+                  { label: "Hobbies", value: match.hobbies?.join(", ") },
+                ].map(({ label, value }, i) => (
+                  <View key={i} style={styles.detailRow}>
+                    <Text style={styles.label}>{label}</Text>
+                    <Text style={styles.value}>{value || "_"}</Text>
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+          )}
 
           {/* Buttons */}
-          <View style={{ display: "flex" }}>
-            <View style={styles.buttonsContainer}>
-              <TouchableOpacity
-                style={[styles.button, styles.messageButton]}
-                onPress={() => {
-                  if (onMessage) onMessage(match);
-                  else Alert.alert("Message button pressed");
-                }}
-              >
+          <View style={styles.buttonsContainer}>
+            <View style={{ display : "flex", flexDirection: "row" , justifyContent : "space-between" , alignItems : "center" }}>
+              <TouchableOpacity style={[styles.button, styles.messageButton]}>
                 <Text style={styles.buttonText}>Message</Text>
               </TouchableOpacity>
-
-              {/* <TouchableOpacity
-                style={[styles.button, styles.blockButton]}
-                onPress={() => {
-                  if (onBlock) onBlock(match);
-                  else Alert.alert("Block button pressed");
-                }}
-              >
-                <Text style={styles.buttonText}>Block</Text>
-              </TouchableOpacity> */}
 
               <TouchableOpacity
                 style={[styles.button, styles.closeButton]}
@@ -178,7 +172,7 @@ const ProfilePopup = ({ isVisible, onClose, match, onMessage, onBlock }) => {
         </Animated.View>
       </View>
 
-      {/* show mobile number popup */}
+      {/* Mobile number request popup */}
       {showMobileRequestPopup && (
         <RequestPhoneNumberPopup
           onClose={() => setShowMobileRequestPopup(false)}
@@ -273,15 +267,21 @@ const styles = StyleSheet.create({
     maxWidth: "65%",
     textAlign: "right",
   },
-  buttonsContainer: {
-    position: "absolute",
+  verifiedIcons: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 25,
-    width: "100%",
+    gap: 5,
+  },
+  icon: {
+    width: 20,
+    height: 20,
+  },
+  buttonsContainer: {
+    position: "absolute",   
+    left : 0,
+    right : 0,
     paddingHorizontal: 10,
-    bottom: 0,
-    margin: "auto",
+    bottom: 10,
+    margin: "auto", 
   },
   overlayBackground: {
     flex: 1,

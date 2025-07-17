@@ -7,6 +7,7 @@ import {
   Modal,
   TouchableWithoutFeedback,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import DropDownPicker from "react-native-dropdown-picker";
@@ -14,7 +15,7 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { GetCities, postTravelDetails } from "../controller/UserController";
 import { ErrorPopup, SuccessPopup2 } from "./Popups";
 
-const AddTravelDetail = () => {
+const AddTravelDetail = ({ onDetailAdded }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [travelType, setTravelType] = useState("Between cities");
 
@@ -34,12 +35,14 @@ const AddTravelDetail = () => {
 
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false); // Loading state
 
   const fetchCities = async () => {
     try {
       const arr = await GetCities();
       setCityList(arr.map((c) => ({ label: c.name, value: c.id })));
-    } catch (e) { 
+    } catch (e) {
+      console.log(e);
     }
   };
 
@@ -56,6 +59,11 @@ const AddTravelDetail = () => {
     cityList.find((item) => item.value === id)?.label || "";
 
   const handleSubmit = async () => {
+    // Prevent submission while loading
+    if (loading) {
+      return;
+    }
+
     if (
       travelType === "Between cities" &&
       (!fromCity || !toCity || !selectedDate || !description)
@@ -89,18 +97,22 @@ const AddTravelDetail = () => {
       travel_date: selectedDate.toISOString().split("T")[0],
       description,
     };
- 
+
+    setLoading(true); // Set loading to true while making the API call
 
     try {
+      // Call API
       await postTravelDetails(data);
       setSuccess(true);
       setError("");
     } catch (error) {
-      console.log(error.response.data)
+      console.log(error.response?.data);
       setError(error?.response?.data?.message || "Error! Please try again.");
+    } finally {
+      setLoading(false); // Reset loading state after submission
     }
 
-    // Reset all fields
+    // Reset all fields after submission
     setFromCity(null);
     setToCity(null);
     setCity(null);
@@ -114,6 +126,7 @@ const AddTravelDetail = () => {
       <TouchableOpacity
         style={styles.fab}
         onPress={() => setIsModalVisible(true)}
+        disabled={loading} // Disable when loading
       >
         <Ionicons name="add" size={30} color="#FFF" />
       </TouchableOpacity>
@@ -139,6 +152,7 @@ const AddTravelDetail = () => {
                         travelType === type && styles.travelTypeButtonActive,
                       ]}
                       onPress={() => setTravelType(type)}
+                      disabled={loading} // Disable when loading
                     >
                       <Text
                         style={[
@@ -166,6 +180,7 @@ const AddTravelDetail = () => {
                       zIndex={7000}
                       zIndexInverse={1000}
                       style={styles.dropdown}
+                      disabled={loading} // Disable when loading
                     />
                     <DropDownPicker
                       open={toOpen}
@@ -179,6 +194,7 @@ const AddTravelDetail = () => {
                       zIndex={6000}
                       zIndexInverse={900}
                       style={styles.dropdown}
+                      disabled={loading} // Disable when loading
                     />
                   </>
                 ) : (
@@ -194,12 +210,14 @@ const AddTravelDetail = () => {
                     zIndex={5000}
                     zIndexInverse={800}
                     style={styles.dropdown}
+                    disabled={loading} // Disable when loading
                   />
                 )}
 
                 <TouchableOpacity
                   onPress={() => setDatePickerVisibility(true)}
                   style={styles.input}
+                  disabled={loading} // Disable when loading
                 >
                   <Text>
                     {selectedDate
@@ -223,18 +241,25 @@ const AddTravelDetail = () => {
                   value={description}
                   onChangeText={setDescription}
                   multiline
+                  editable={!loading} // Disable when loading
                 />
 
                 <TouchableOpacity
                   style={styles.submitButton}
                   onPress={handleSubmit}
+                  disabled={loading} // Disable when loading
                 >
-                  <Text style={styles.submitButtonText}>Submit</Text>
+                  {loading ? (
+                    <ActivityIndicator size="small" color="#FFF" />
+                  ) : (
+                    <Text style={styles.submitButtonText}>Submit</Text>
+                  )}
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={styles.closeButton}
                   onPress={() => setIsModalVisible(false)}
+                  disabled={loading} // Disable when loading
                 >
                   <Text style={styles.closeButtonText}>Close</Text>
                 </TouchableOpacity>
@@ -245,7 +270,14 @@ const AddTravelDetail = () => {
       </Modal>
 
       {error && <ErrorPopup error={error} onClose={() => setError("")} />}
-      {success && <SuccessPopup2 onClose={() => setSuccess(false)} />}
+      {success && (
+        <SuccessPopup2
+          onClose={() => {
+            setSuccess(false);
+            onDetailAdded();
+          }}
+        />
+      )}
     </>
   );
 };

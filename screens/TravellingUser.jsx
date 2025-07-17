@@ -8,12 +8,16 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import AddTravelDetail from "../componentes/AddTravelDetail";
-import { getAllBetweenCitiesTrips, getAllWithinCitiesTrips } from "../controller/UserController";
+import {
+  getAllBetweenCitiesTrips,
+  getAllWithinCitiesTrips,
+} from "../controller/UserController";
+import { ImageBackground } from "react-native";
 
- 
 const UserCard = ({ user, isBetweenCities }) => {
   const [showDetail, setShowDetail] = useState(false);
 
@@ -21,31 +25,40 @@ const UserCard = ({ user, isBetweenCities }) => {
     setShowDetail((prev) => !prev);
   };
 
+  const safeUser = {
+    image: user?.images || "https://via.placeholder.com/50",
+    name: user?.username || "Unknown User",
+    from: user?.from_city || "N/A",
+    to: user?.to_city || "N/A",
+    date: user?.journey_date?.split("T")[0] || "N/A",
+    detail: user?.description || "No details available",
+  };
+
   return (
     <View style={styles.card}>
       <View style={styles.userCard}>
         <View style={styles.profileContainer}>
-          <Image source={{ uri: user.image }} style={styles.profileImage} />
+          <Image source={{ uri: safeUser.image }} style={styles.profileImage} />
           <View style={styles.userInfo}>
-            <Text style={styles.userName}>{user.name}</Text>
+            <Text style={styles.userName}>{safeUser.name}</Text>
             {isBetweenCities ? (
               <View style={styles.routeContainer}>
-                <Text style={styles.userDetail}>{user.from}</Text>
+                <Text style={styles.userDetail}>{safeUser.from}</Text>
                 <Ionicons
                   name="airplane"
                   size={16}
                   color="#bbb"
                   style={styles.icon}
                 />
-                <Text style={styles.userDetail}>{user.to}</Text>
+                <Text style={styles.userDetail}>{safeUser.to}</Text>
               </View>
             ) : (
               <View style={styles.routeContainer}>
                 <MaterialIcons name="location-city" size={16} color="gray" />
-                <Text style={styles.userDetail}>{user.city}</Text>
+                <Text style={styles.userDetail}>{safeUser.from}</Text>
               </View>
             )}
-            <Text style={styles.userDetail}>Date: {user.date}</Text>
+            <Text style={styles.userDetail}>Date: {safeUser.date}</Text>
           </View>
         </View>
 
@@ -62,7 +75,7 @@ const UserCard = ({ user, isBetweenCities }) => {
 
       {showDetail && (
         <View style={styles.detailContainer}>
-          <Text style={styles.userDetail}>{user.detail}</Text>
+          <Text style={styles.userDetail}>{safeUser.detail}</Text>
         </View>
       )}
     </View>
@@ -74,61 +87,117 @@ export default function TravellingUser() {
   const [activeTab, setActiveTab] = useState("Cities");
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true); // Track if there are more items to load
-  const [loadedData, setLoadedData] = useState({
-    "Between Cities": [],
-    "Guider/Turister": [],
-  });
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState({ Cities: 1, Guider: 1 });
+  const [hasMore, setHasMore] = useState({ Cities: true, Guider: true });
+  const [loadedData, setLoadedData] = useState({ Cities: [], Guider: [] });
+  const [refreshing, setRefreshing] = useState(false); // For pull-to-refresh
 
-  // Fetch data from API based on the active tab and current page
   const fetchData = async (tab, page) => {
     setLoading(true);
+    setError(null);
     let newUsers = [];
     try {
       if (tab === "Cities") {
-        newUsers = await getAllBetweenCitiesTrips(page); // API for Between Cities
+        newUsers = await getAllBetweenCitiesTrips(page);
       } else if (tab === "Guider") {
-        newUsers = await getAllWithinCitiesTrips(page); // API for Guider/Turister
+        newUsers = await getAllWithinCitiesTrips(page);
       }
+
+      newUsers = Array.isArray(newUsers) ? newUsers : [];
       setLoading(false);
       return newUsers;
     } catch (error) {
-      console.error("Error fetching data:", error);
+      setError("Failed to load data. Please try again.");
       setLoading(false);
+      return [];
     }
   };
 
   useEffect(() => {
     const loadData = async () => {
-      const newUsers = await fetchData(activeTab, page);
-      setLoadedData((prevData) => ({
-        ...prevData,
-        [activeTab]: [...prevData[activeTab], ...newUsers],
-      }));
-      setUsers((prev) => [...prev, ...newUsers]);
-      setHasMore(newUsers.length > 0);
+      if (hasMore[activeTab]) {
+        const newUsers = await fetchData(activeTab, page[activeTab]);
+        const existingUsers = loadedData[activeTab].map((user) => user.id);
+        const filteredNewUsers = newUsers.filter(
+          (user) => !existingUsers.includes(user.id)
+        );
+
+        if (filteredNewUsers.length > 0) {
+          setLoadedData((prevData) => ({
+            ...prevData,
+            [activeTab]: [...prevData[activeTab], ...filteredNewUsers],
+          }));
+          setUsers((prevUsers) => [...prevUsers, ...filteredNewUsers]);
+        }
+
+        setHasMore((prev) => ({
+          ...prev,
+          [activeTab]: filteredNewUsers.length > 0,
+        }));
+      }
     };
 
     loadData();
   }, [activeTab, page]);
 
-  // Handle scroll load more functionality
+  useEffect(() => {
+    setUsers(loadedData[activeTab] || []);
+    setSelectedCity("All Cities");
+  }, [activeTab, loadedData]);
+
   const handleEndReached = () => {
-    if (loading || !hasMore) return;
-    setPage((prev) => prev + 1); // Increase page number to load more data
+    if (loading || !hasMore[activeTab]) return;
+    setPage((prev) => ({
+      ...prev,
+      [activeTab]: prev[activeTab] + 1,
+    }));
   };
 
-  const filteredUsers = loadedData[activeTab]?.filter((user) =>
-    selectedCity === "All Cities"
-      ? true
-      : user.type === "Between Cities"
-      ? user.from === selectedCity || user.to === selectedCity
-      : user.city === selectedCity
-  );
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    setPage((prev) => ({
+      ...prev,
+      [activeTab]: 1, // Reset page to 1 for fresh load
+    }));
+
+    const freshUsers = await fetchData(activeTab, 1);
+
+    setLoadedData((prevData) => ({
+      ...prevData,
+      [activeTab]: freshUsers,
+    }));
+
+    const filteredUsers = freshUsers.filter((user) =>
+      selectedCity === "All Cities"
+        ? true
+        : activeTab === "Cities"
+        ? user.from === selectedCity || user.to === selectedCity
+        : user.city === selectedCity
+    );
+
+    setUsers(filteredUsers);
+    setRefreshing(false);
+  };
+
+  useEffect(() => {
+    const filterUsers = (usersList) => {
+      return usersList.filter((user) =>
+        selectedCity === "All Cities"
+          ? true
+          : activeTab === "Cities"
+          ? user.from === selectedCity || user.to === selectedCity
+          : user.city === selectedCity
+      );
+    };
+    setUsers(filterUsers(loadedData[activeTab] || []));
+  }, [selectedCity, activeTab, loadedData]);
 
   return (
-    <View style={styles.container}>
+    <ImageBackground
+      source={require("../assets/photos/app-bg-7.jpg")}
+      style={styles.container}
+    >
       <View style={styles.header}>
         <Text style={styles.headerText}>Find Your Travel Buddy</Text>
         <View style={styles.searchContainer}>
@@ -136,9 +205,12 @@ export default function TravellingUser() {
             placeholder="Search City..."
             placeholderTextColor="#aaa"
             style={styles.searchInput}
+            onChangeText={(text) => setSelectedCity(text || "All Cities")}
+            value={selectedCity === "All Cities" ? "" : selectedCity}
           />
         </View>
       </View>
+      {error && <Text style={styles.errorText}>{error}</Text>}
       <View style={styles.tabContainer}>
         {["Cities", "Guider"].map((tab) => (
           <TouchableOpacity
@@ -146,9 +218,6 @@ export default function TravellingUser() {
             style={[styles.tab, activeTab === tab && styles.activeTab]}
             onPress={() => {
               setActiveTab(tab);
-              setUsers(loadedData[tab] || []);
-              setPage(1);
-              setHasMore(true); // Reset 'hasMore' when switching tabs
             }}
           >
             <Text
@@ -163,8 +232,8 @@ export default function TravellingUser() {
         ))}
       </View>
       <FlatList
-        data={  filteredUsers}
-        keyExtractor={(item) => item.id}
+        data={users}
+        keyExtractor={(item, index) => index}
         renderItem={({ item }) => (
           <UserCard user={item} isBetweenCities={activeTab === "Cities"} />
         )}
@@ -174,18 +243,20 @@ export default function TravellingUser() {
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.5}
         ListFooterComponent={
-          loading ? (
-            <ActivityIndicator size="large" color="#000" />
-          ) : null
+          loading ? <ActivityIndicator size="large" color="#000" /> : null
+        }
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       />
-      <AddTravelDetail />
-    </View>
+      <AddTravelDetail onDetailAdded={handleRefresh} />
+      {/* Refresh on adding detail */}
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FAFAFA" },
+  container: { flex: 1, backgroundColor: "#ffffffff" },
 
   header: {
     backgroundColor: "#FF5555",
@@ -229,8 +300,6 @@ const styles = StyleSheet.create({
   activeTabText: { color: "white" },
   userCard: {
     flexDirection: "row",
-    backgroundColor: "#FFF",
-
     alignItems: "center",
     justifyContent: "space-between",
   },
@@ -238,16 +307,23 @@ const styles = StyleSheet.create({
     display: "flex",
     flexDirection: "col",
     backgroundColor: "#FFF",
-    elevation: 4,
     borderRadius: 10,
     margin: 6,
     padding: 15,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    // backgroundColor: "#f5f6ffff",
   },
   detailButton: {
     backgroundColor: "#f3f3f3",
     borderRadius: 5,
     marginTop: 6,
     padding: 4,
+  },
+  detailButtonText: {
+    textAlign: "right",
+    marginRight : 10,
+    fontStyle : "italic",
   },
   profileContainer: { flexDirection: "row", alignItems: "center", flex: 1 },
   profileImage: { width: 60, height: 60, borderRadius: 6, marginRight: 10 },
@@ -273,5 +349,9 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 16,
     color: "#999",
+  },
+  detailContainer: {
+    padding: 4,
+    color: "#333",
   },
 });
