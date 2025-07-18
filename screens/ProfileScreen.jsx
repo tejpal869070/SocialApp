@@ -24,19 +24,20 @@ import ProfileDetailsList from "../componentes/Profile/ProfileDetailsList";
 import UpdateProfileDetails from "../componentes/Profile/UpdateProfileDetails";
 import maleImage from "../assets/photos/male.png";
 import femaleImage from "../assets/photos/female.png";
+import ProfilePopup from "../componentes/Profile/ProfilePopup";
 
 const ProfileScreen = ({ navigation }) => {
   const [user, setUser] = useState({});
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [profileImagePopup, setProfileImagePopup] = useState(false);
+  const [profileOpen , setProfileOpen] = useState(false);
 
   const fetchUser = async () => {
     try {
       const response = await UserDetails();
       setUser(response);
-    } catch (error) {
-      console.error(error);
+    } catch (error) { 
       setHasError(true);
     } finally {
       setLoading(false);
@@ -133,7 +134,10 @@ const ProfileScreen = ({ navigation }) => {
                   Edit Photos
                 </Text>
               </Pressable>
-              <Pressable style={styles.infoButton}>
+              <Pressable
+                style={styles.infoButton}
+                onPress={() => setProfileOpen(true)}
+              >
                 <Text
                   style={{
                     textAlign: "center",
@@ -163,6 +167,13 @@ const ProfileScreen = ({ navigation }) => {
         }}
         existingPhotos={user?.images}
       />
+
+
+      <ProfilePopup
+        user_id={user?.user_id}
+        onClose={() => setProfileOpen(false)}
+        isVisible={profileOpen}
+      />
     </SafeAreaView>
   );
 };
@@ -184,7 +195,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   swiperContainer: {
-    // height: 200,
     width: "100%",
     borderRadius: 20,
     overflow: "hidden",

@@ -17,10 +17,17 @@ import fbicon from "../../assets/photos/facebook.png";
 import phoneicon from "../../assets/photos/iphone.png";
 import { RequestPhoneNumberPopup } from "../Popups";
 import { CalculateAge } from "../../controller/ReusableFunction";
+import MessagePopup from "../MessagePopup";
 
 const { width, height } = Dimensions.get("window");
 
-const HomeProfilePopup = ({ isVisible, onClose, match, onMessage, onBlock }) => {
+const HomeProfilePopup = ({
+  isVisible,
+  onClose,
+  match,
+  onMessage,
+  onBlock,
+}) => {
   const [showMobileRequestPopup, setShowMobileRequestPopup] =
     React.useState(false);
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -86,8 +93,7 @@ const HomeProfilePopup = ({ isVisible, onClose, match, onMessage, onBlock }) => 
 
             {/* Basic Info */}
             <Text style={styles.name}>
-              {match.username},{" "}
-              {match.dob ? CalculateAge(match.dob) : "N/A"}
+              {match.username}, {match.dob ? CalculateAge(match.dob) : "N/A"}
             </Text>
             <Text style={styles.city}>📍 {match.city}</Text>
             <Text style={styles.bio}>"{match.bio}"</Text>
@@ -98,7 +104,7 @@ const HomeProfilePopup = ({ isVisible, onClose, match, onMessage, onBlock }) => 
                 <Text style={styles.label}>Mobile</Text>
                 <View style={{ maxWidth: "100%" }}>
                   <View style={[styles.value, { maxWidth: "100%" }]}>
-                    <Text>+918690*****</Text>
+                    <Text>{match.mobile}</Text>
                     <Pressable onPress={() => setShowMobileRequestPopup(true)}>
                       <Text style={styles.requestButton}>Request to show</Text>
                     </Pressable>
@@ -147,26 +153,9 @@ const HomeProfilePopup = ({ isVisible, onClose, match, onMessage, onBlock }) => 
           {/* Buttons */}
           <View style={{ display: "flex" }}>
             <View style={styles.buttonsContainer}>
-              <TouchableOpacity
-                style={[styles.button, styles.messageButton]}
-                onPress={() => {
-                  if (onMessage) onMessage(match);
-                  else Alert.alert("Message button pressed");
-                }}
-              >
-                <Text style={styles.buttonText}>Message</Text>
-              </TouchableOpacity>
+              <MessagePopup receiver_id={match?.uid} />
 
-              {/* <TouchableOpacity
-                style={[styles.button, styles.blockButton]}
-                onPress={() => {
-                  if (onBlock) onBlock(match);
-                  else Alert.alert("Block button pressed");
-                }}
-              >
-                <Text style={styles.buttonText}>Block</Text>
-              </TouchableOpacity> */}
-
+              {/* style={[styles.button, styles.messageButton]} */}
               <TouchableOpacity
                 style={[styles.button, styles.closeButton]}
                 onPress={onClose}

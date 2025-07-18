@@ -20,6 +20,7 @@ import { StatusBar } from "expo-status-bar";
 import { UserLogin } from "../../controller/UserController";
 import { ErrorPopup } from "../../componentes/Popups";
 import { Ionicons } from "@expo/vector-icons";
+import { initializeSocket } from "../../controller/Socket";
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -30,6 +31,7 @@ const LoginScreen = ({ navigation }) => {
 
   const handleSignIn = async () => {
     setIsLoading(true);
+
     if (!email || !password) {
       setError("Email & Password are required");
       setIsLoading(false);
@@ -42,12 +44,16 @@ const LoginScreen = ({ navigation }) => {
     };
 
     try {
-      const response = await UserLogin(formData);
-      const { token, email } = response;
+      const response = await UserLogin(formData); 
+      const { token, email, user_id } = response; 
 
       // Save token and email in AsyncStorage
       await AsyncStorage.setItem("token", token);
-      await AsyncStorage.setItem("email", email);
+      await AsyncStorage.setItem("email", email); 
+      await AsyncStorage.setItem("user_id", user_id);
+
+      // Initialize Socket.IO connection with token
+      initializeSocket(token);
 
       navigation.navigate("Main");
     } catch (error) {

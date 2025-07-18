@@ -7,10 +7,10 @@ import {
   ImageBackground,
   Image,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
-import { CheckToken } from "../controller/UserController";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { CheckToken } from "../controller/UserController"; 
+import { initializeSocket } from "../controller/Socket";
 
 export default function StartScreen() {
   const navigation = useNavigation();
@@ -18,7 +18,17 @@ export default function StartScreen() {
   useEffect(() => {
     const checkUser = async () => {
       try {
-        await CheckToken(); 
+        // 1. Check if token is valid
+        await CheckToken();
+
+        // 2. Retrieve token from AsyncStorage
+        const token = await AsyncStorage.getItem("token");
+
+        if (token) {
+          // 3. Initialize socket connection with token
+          initializeSocket(token);
+        }
+ 
         navigation.replace("Main");
       } catch (error) { 
         navigation.replace("Login");
@@ -33,7 +43,6 @@ export default function StartScreen() {
       source={require("../assets/photos/little-red.jpg")}
       style={styles.container}
     >
-      {/* <Ionicons name="heart-circle" size={100} color="#e91e63" /> */}
       <Image
         alt="logo"
         source={require("../assets/photos/logo.png")}

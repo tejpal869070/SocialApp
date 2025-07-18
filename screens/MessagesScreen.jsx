@@ -10,71 +10,145 @@ import {
   KeyboardAvoidingView,
   Platform,
   ImageBackground,
+  Keyboard,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons"; // For icons
+import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import bg4 from "../assets/photos/app-bg-7.jpg";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getSocket } from "../controller/Socket";
 
 const MessageScreen = ({ navigation, route }) => {
-  const { user } = route.params || {
-    user: {
-      name: "Mansi",
-      profilePic:
-        "https://img.freepik.com/free-photo/young-beautiful-girl-posing-black-leather-jacket-park_1153-8104.jpg?semt=ais_hybrid&w=740",
-    },
-  };
-  const [messages, setMessages] = useState([
-    {
-      id: "1",
-      text: "Hey, how are you?",
-      sender: "other",
-      timestamp: "04:00 PM",
-    },
-    {
-      id: "2",
-      text: "I’m good, thanks! How about you?",
-      sender: "me",
-      timestamp: "04:01 PM",
-    },
-    {
-      id: "3",
-      text: "Doing great! Want to meet up later?",
-      sender: "other",
-      timestamp: "04:02 PM",
-    },
-    {
-      id: "4",
-      text: "Sure, let’s meet at 6 PM.",
-      sender: "me",
-      timestamp: "04:03 PM",
-    },
-  ]);
+  const { user } = route.params;
+
+  const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const flatListRef = useRef(null);
+  const [myUserId, setMyUserId] = useState(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
-  // Scroll to the latest message when messages update
-  useEffect(() => {
+  // Scroll to bottom when messages update
+  const scrollToBottom = () => {
     flatListRef.current?.scrollToEnd({ animated: true });
-  }, [messages]);
+  };
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener("keyboardDidShow", () =>
+      setKeyboardVisible(true)
+    );
+    const hideSub = Keyboard.addListener("keyboardDidHide", () =>
+      setKeyboardVisible(false)
+    );
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  // Load my user ID from storage
+  useEffect(() => {
+    const loadUserId = async () => {
+      const id = await AsyncStorage.getItem("user_id");
+      setMyUserId(Number(id));
+    };
+    loadUserId();
+  }, []);
+
+  // Fetch chat history
+  useEffect(() => {
+    const socket = getSocket();
+    if (
+      !socket ||
+      !socket.connected ||
+      !user?.other_user_id ||
+      myUserId === null
+    )
+      return;
+
+    socket.emit(
+      "getChats",
+      { other_user_id: user.other_user_id, page: 1 },
+      (response) => {
+        if (response.status === "success") {
+          const formatted = response.data.map((msg) => ({
+            id: msg.id.toString(),
+            text: msg.message,
+            sender: msg.sender_id === myUserId ? "me" : "other",
+            timestamp: new Date(msg.created_at).toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            }),
+          }));
+          setMessages(formatted);
+        } else {
+          console.warn("Failed to load chat history", response);
+        }
+      }
+    );
+  }, [myUserId, user?.other_user_id]);
+
+  // Handle incoming real-time messages
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket || !socket.connected) return;
+
+    const handleIncoming = (data) => {
+      if (
+        data.sender_id !== user.other_user_id &&
+        data.receiver_id !== user.other_user_id
+      )
+        return;
+
+      const msg = {
+        id: Date.now().toString(),
+        text: data.message,
+        sender: "other",
+        timestamp: new Date().toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        }),
+      };
+
+      setMessages((prev) => [...prev, msg]);
+    };
+
+    socket.on("receiveChatMessage", handleIncoming);
+    return () => socket.off("receiveChatMessage", handleIncoming);
+  }, [user.other_user_id]);
 
   const sendMessage = () => {
     if (newMessage.trim() === "") return;
 
-    const currentTime = new Date().toLocaleTimeString("en-US", {
+    const socket = getSocket();
+    const timestamp = new Date().toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: true,
     });
 
-    setMessages([
-      ...messages,
+    const msg = {
+      id: Date.now().toString(),
+      text: newMessage,
+      sender: "me",
+      timestamp,
+    };
+
+    setMessages((prev) => [...prev, msg]);
+
+    socket.emit(
+      "sendChatMessage",
       {
-        id: (messages.length + 1).toString(),
-        text: newMessage,
-        sender: "me",
-        timestamp: currentTime,
+        receiver_id: user.other_user_id,
+        message: newMessage,
       },
-    ]);
+      (res) => {
+        if (res.status !== "ok") console.warn("Send failed:", res);
+      }
+    );
+
     setNewMessage("");
   };
 
@@ -94,16 +168,17 @@ const MessageScreen = ({ navigation, route }) => {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={0}
+      // keyboardVerticalOffset={80}
     >
-      <ImageBackground source={bg4} style={{flex : 1}}>
+      <ImageBackground source={bg4} style={{ flex: 1 }}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Ionicons name="chevron-back" size={24} color="#fff" />
           </TouchableOpacity>
-          <Image source={{ uri: user.profilePic }} style={styles.profilePic} />
-          <Text style={styles.headerText}>{user.name}</Text>
+          <Image source={{ uri: user.images }} style={styles.profilePic} />
+          <Text style={styles.headerText}>{user.username}</Text>
+
           <View style={styles.headerIcons}>
             <TouchableOpacity>
               <Ionicons
@@ -124,14 +199,18 @@ const MessageScreen = ({ navigation, route }) => {
           </View>
         </View>
 
-        {/* Chat Area */}
+        {/* Chat Messages */}
         <FlatList
           ref={flatListRef}
           data={messages}
           renderItem={renderMessage}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.chatContainer}
+          contentContainerStyle={[
+            styles.chatContainer,
+            { paddingBottom: keyboardVisible ? 10 : 80 },
+          ]}
           showsVerticalScrollIndicator={false}
+          onContentSizeChange={scrollToBottom}
         />
 
         {/* Message Input */}
@@ -158,7 +237,6 @@ const MessageScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // backgroundColor: '#121B22',
   },
   header: {
     flexDirection: "row",
@@ -189,7 +267,6 @@ const styles = StyleSheet.create({
   },
   chatContainer: {
     padding: 10,
-    paddingBottom: 20,
   },
   messageContainer: {
     maxWidth: "75%",

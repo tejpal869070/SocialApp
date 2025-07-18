@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,47 +6,186 @@ import {
   Image,
   TouchableOpacity,
   StyleSheet,
+  TextInput,
+  ActivityIndicator,
+  Pressable,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons"; // For the call icon
-import { chats } from "../assets/Data/Chats"; // Assuming 'chats' has age and location data
+import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
-import messageIcon from "../assets/photos/message (1).png";
-import callIcon from "../assets/photos/iphone.png";
+import {
+  getAllMessageRequest,
+  updateMessageRequests,
+} from "../controller/UserController";
+import { CalculateAge } from "../controller/ReusableFunction";
+import ProfilePopup from "../componentes/Profile/ProfilePopup";
+import { Loading, SuccessPopup3 } from "../componentes/Popups";
+import { getSocket } from "../controller/Socket";
+
+// Default user data for missing details
+const defaultUser = {
+  name: "Unknown User",
+  profilePic: "https://example.com/default.jpg",
+  lastMessage: "No message available",
+  timestamp: "N/A",
+  age: "Unknown",
+  location: "Unknown",
+};
 
 const AllChatsScreen = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState("Inbox");
+  const [inboxChats, setInboxChats] = useState([]);
+  const [requestsChats, setRequestsChats] = useState([]);
+  const [inboxPage, setInboxPage] = useState(1);
+  const [requestsPage, setRequestsPage] = useState(1);
+  const [inboxTotalPages, setInboxTotalPages] = useState(1);
+  const [requestsTotalPages, setRequestsTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [profileOpen, setOpenProfile] = useState(false);
 
-  // Split chats into Inbox and Requests (assuming chats have a 'type' property)
-  const inboxChats = chats.filter(
-    (chat) => chat.type === "inbox" || !chat.type
+  const [user_id, setUser_id] = useState(null);
+  const [processing, setProcessing] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  // Callback to handle missing user details
+  const fillMissingUserDetails = useCallback((user) => {
+    return {
+      ...defaultUser,
+      ...user,
+      id: user.id || `unknown-${Math.random().toString(36).substr(2, 9)}`,
+    };
+  }, []);
+
+  const fetchInboxChats = useCallback(
+    async (page = 1, isRefresh = false) => {
+      const socket = getSocket();
+
+      if (!socket?.connected) {
+        console.warn("⚠️ Socket not connected");
+        return;
+      }
+
+      try {
+        setLoading(true);
+
+        socket.emit("getChatList", { page }, (response) => {
+          if (!Array.isArray(response.data)) {
+            console.error("❌ Unexpected response:", response);
+            return;
+          }
+
+          const filledData = response.data?.map(fillMissingUserDetails);
+
+          setInboxChats((prev) =>
+            isRefresh ? filledData : [...prev, ...filledData]
+          );
+
+          // Optional: if you implement manual pagination
+          setInboxPage(page);
+        });
+      } catch (error) {
+        console.error("Error fetching inbox chats via socket:", error);
+      } finally {
+        setLoading(false);
+        if (isRefresh) setRefreshing(false);
+      }
+    },
+    [fillMissingUserDetails]
   );
-  const requestsChats = chats.filter(
-    (chat) => chat.type === "message-request" || chat.type === "phone-request"
+
+  // Fetch message requests
+  const fetchMessageRequests = useCallback(
+    async (page, isRefresh = false) => {
+      try {
+        setLoading(true);
+        const response = await getAllMessageRequest(page);
+        console.log(response);
+        const filledData = response?.map(fillMissingUserDetails);
+        setRequestsChats((prev) =>
+          isRefresh ? filledData : [...prev, ...filledData]
+        );
+        setRequestsTotalPages(response.totalPages);
+        setRequestsPage(response.currentPage);
+      } catch (error) {
+        console.error("Error fetching message requests:", error);
+      } finally {
+        setLoading(false);
+        if (isRefresh) setRefreshing(false);
+      }
+    },
+    [fillMissingUserDetails]
   );
+
+  // Initial fetch and tab switch handling
+  useEffect(() => {
+    if (activeTab === "Inbox") {
+      fetchInboxChats(1, true);
+    } else {
+      fetchMessageRequests(1, true);
+    }
+  }, [activeTab, fetchInboxChats, fetchMessageRequests]);
+
+  // Load more data when reaching the end of the list
+  const loadMore = () => {
+    if (loading) return;
+    if (activeTab === "Inbox" && inboxPage < inboxTotalPages) {
+      fetchInboxChats(inboxPage + 1);
+    } else if (activeTab === "Requests" && requestsPage < requestsTotalPages) {
+      fetchMessageRequests(requestsPage + 1);
+    }
+  };
+
+  // Handle pull-to-refresh
+  const onRefresh = () => {
+    setRefreshing(true);
+    if (activeTab === "Inbox") {
+      setInboxPage(1);
+      fetchInboxChats(1, true);
+    } else {
+      setRequestsPage(1);
+      fetchMessageRequests(1, true);
+    }
+  };
 
   const renderChatItem = ({ item }) => {
     return (
-      <TouchableOpacity
+      <View
         style={styles.chatItem}
-        onPress={() => navigation.navigate("Messages")}
+        // onPress={() => navigation.navigate("Messages", { chatId: item.id })}
       >
-        {/* Profile Picture */}
-        <Image source={{ uri: item.profilePic }} style={styles.profilePic} />
-        {/* Chat Info */}
-        <View style={styles.chatInfo}>
-          <Text style={styles.name}>{item.name}</Text>
-          {activeTab === "Inbox" ? (
-            <Text style={styles.lastMessage} numberOfLines={1}>
-              {item.lastMessage}
-            </Text>
-          ) : (
-            <View style={styles.requestInfo}>
-              <Text style={styles.ageLocation}>Age: 24 📍Jaipur</Text>
-            </View>
-          )}
-        </View>
+        <Pressable
+          onPress={() => {
+            setOpenProfile(true);
+            setUser_id(item.other_user_id);
+          }}
+        >
+          <Image
+            source={{ uri: item.images }}
+            style={styles.profilePic}
+            defaultSource={{ uri: defaultUser?.profilePic }}
+          />
+        </Pressable>
+        <Pressable
+          style={{ flex: 1 }}
+          onPress={() => navigation.navigate("Messages", { user: item })}
+        >
+          <View style={[styles.chatInfo]}>
+            <Text style={styles.name}>{item.username}</Text>
+            {activeTab === "Inbox" ? (
+              <Text style={styles.lastMessage} numberOfLines={1}>
+                {item.last_message}
+              </Text>
+            ) : (
+              <View style={styles.requestInfo}>
+                <Text style={styles.ageLocation}>
+                  Age {item.dob ? CalculateAge(item.dob) : "N/A"}, 📍{item.city}
+                </Text>
+              </View>
+            )}
+          </View>
+        </Pressable>
 
-        {/* Right Section (Timestamp, Call Icon, and buttons for Requests) */}
+        {/* Right Section */}
         <View style={styles.rightSection}>
           {activeTab === "Inbox" ? (
             <>
@@ -57,64 +196,49 @@ const AllChatsScreen = ({ navigation }) => {
             </>
           ) : (
             <View style={styles.requestButtons}>
-              <Image
-                source={
-                  item.type === "message-request" ? messageIcon : callIcon
-                }
-                style={{ width: 32, height: 32, marginRight: 6 }}
-              />
-              {item.type === "message-request" ? (
-                <TouchableOpacity
-                  style={styles.addButton}
-                  onPress={() => handleAddRequest(item.id)}
-                >
-                  <Text style={styles.addButtonText}>Confirm</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={[styles.addButton, { paddingHorizontal: 19 }]}
-                  onPress={() => handleAddRequest(item.id)}
-                >
-                  <Text style={styles.addButtonText}>Allow</Text>
-                </TouchableOpacity>
-              )}
-              {item.type === "message-request" ? (
-                <TouchableOpacity
-                  style={styles.rejectButton}
-                  onPress={() => handleRejectRequest(item.id)}
-                >
-                  <Text style={styles.rejectButtonText}>Delete</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={[styles.rejectButton, {paddingHorizontal : 17}]}
-                  onPress={() => handleRejectRequest(item.id)}
-                >
-                  <Text style={styles.rejectButtonText}>Deny</Text>
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => handleRequest(item.id, "accepted")}
+              >
+                <Text style={styles.addButtonText}>Confirm</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.rejectButton}
+                onPress={() => handleRequest(item.id, "rejected")}
+              >
+                <Text style={styles.rejectButtonText}>Delete</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
-      </TouchableOpacity>
+      </View>
     );
   };
 
-  // Handler for accepting a request
-  const handleAddRequest = (id) => {
-    console.log(`Accepted request from ${id}`);
-  };
-
-  // Handler for rejecting a request
-  const handleRejectRequest = (id) => {
-    console.log(`Rejected request from ${id}`);
+  // Handlers for request actions
+  const handleRequest = async (id, status) => {
+    setProcessing(true);
+    try {
+      await updateMessageRequests(id, status);
+      setSuccess(true);
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setProcessing(false);
+    }
   };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>Chats</Text>
+        <Text style={styles.headerText}>Chat</Text>
+        <View style={styles.searchContainer}>
+          <TextInput
+            placeholder="Search..."
+            placeholderTextColor="#aaa"
+            style={styles.searchInput}
+          />
+        </View>
       </View>
 
       {/* Tabs */}
@@ -154,7 +278,36 @@ const AllChatsScreen = ({ navigation }) => {
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContainer}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          loading && !refreshing ? (
+            <ActivityIndicator size="large" color="#6200EE" />
+          ) : null
+        }
+        refreshing={refreshing}
+        onRefresh={onRefresh}
       />
+
+      <ProfilePopup
+        isVisible={profileOpen}
+        onClose={() => {
+          setOpenProfile(false);
+          setUser_id(null);
+        }}
+        user_id={user_id}
+      />
+
+      {success && (
+        <SuccessPopup3
+          onClose={() => {
+            setSuccess(false);
+            onRefresh();
+          }}
+        />
+      )}
+
+      {processing && <Loading />}
 
       <StatusBar style="light" />
     </View>
@@ -166,18 +319,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f5f5f5",
   },
-  header: {
-    backgroundColor: "#FF5555",
-    padding: 20,
-    paddingTop: 40,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-  },
-  headerText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#fff",
-  },
+
   tabContainer: {
     flexDirection: "row",
     backgroundColor: "black",
@@ -277,6 +419,24 @@ const styles = StyleSheet.create({
   rejectButtonText: {
     color: "#fff",
     fontSize: 13,
+  },
+  header: {
+    backgroundColor: "#FF5555",
+    padding: 20,
+    paddingTop: 40,
+  },
+  headerText: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#fff",
+  },
+  searchContainer: { marginTop: 10 },
+  searchInput: {
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 25,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    fontSize: 16,
   },
 });
 

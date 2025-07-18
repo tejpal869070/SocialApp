@@ -30,9 +30,8 @@ const SideNavBar = ({ navigation }) => {
     setIsOpen(!isOpen);
   };
 
-  const menuItems = [
-    { name: "Profile", icon: "person", link: "Start" },
-    { name: "Reset Password", icon: "settings-outline", link: "Start" },
+  const menuItems = [ 
+    { name: "Reset Password", icon: "settings-outline", link: "ResetPassword" },
     { name: "Contact us", icon: "call-outline", link: "Start" },
   ];
 

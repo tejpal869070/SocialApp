@@ -18,10 +18,12 @@ import phoneicon from "../../assets/photos/iphone.png";
 import { RequestPhoneNumberPopup } from "../Popups";
 import { CalculateAge } from "../../controller/ReusableFunction";
 import { getSingleUserDetail } from "../../controller/UserController";
+import MessagePopup from "../MessagePopup";
 
 const { width, height } = Dimensions.get("window");
 
 const ProfilePopup = ({ isVisible, onClose, user_id }) => {
+ 
   const [match, setMatch] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showMobileRequestPopup, setShowMobileRequestPopup] = useState(false);
@@ -52,7 +54,7 @@ const ProfilePopup = ({ isVisible, onClose, user_id }) => {
       setLoading(false);
     }
   };
-
+console.log(match)
   if (!isVisible) return null;
 
   return (
@@ -137,12 +139,12 @@ const ProfilePopup = ({ isVisible, onClose, user_id }) => {
                 {[
                   { label: "Education", value: match.education },
                   { label: "Profession", value: match.profession },
-                  { label: "Eating Preference", value: match.eatingPreference },
+                  { label: "Eating Preference", value: match?.eating_preference },
                   {
                     label: "Drinking Preference",
-                    value: match.drinkingPreference,
+                    value: match?.drinking,
                   },
-                  { label: "Dating Type", value: match.datingType },
+                  { label: "Dating Type", value: match.dating_type?.join(", ") },
                   { label: "Hobbies", value: match.hobbies?.join(", ") },
                 ].map(({ label, value }, i) => (
                   <View key={i} style={styles.detailRow}>
@@ -156,10 +158,15 @@ const ProfilePopup = ({ isVisible, onClose, user_id }) => {
 
           {/* Buttons */}
           <View style={styles.buttonsContainer}>
-            <View style={{ display : "flex", flexDirection: "row" , justifyContent : "space-between" , alignItems : "center" }}>
-              <TouchableOpacity style={[styles.button, styles.messageButton]}>
-                <Text style={styles.buttonText}>Message</Text>
-              </TouchableOpacity>
+            <View
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <MessagePopup receiver_id={match?.user_id}/>
 
               <TouchableOpacity
                 style={[styles.button, styles.closeButton]}
@@ -276,12 +283,12 @@ const styles = StyleSheet.create({
     height: 20,
   },
   buttonsContainer: {
-    position: "absolute",   
-    left : 0,
-    right : 0,
+    position: "absolute",
+    left: 0,
+    right: 0,
     paddingHorizontal: 10,
     bottom: 10,
-    margin: "auto", 
+    margin: "auto",
   },
   overlayBackground: {
     flex: 1,

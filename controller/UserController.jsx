@@ -78,8 +78,8 @@ export const SendOtp = async (email) => {
   const response = await axios.post(
     `${API.api_url}user/send-otp`,
     data_to_send
-  );
-  console.log(response.data);
+  ); 
+  console.log(response.data)
   return response.data;
 };
 
@@ -200,14 +200,12 @@ export const uploadImageToServer = async (uri) => {
 
     const data = await response.json();
 
-    if (!response.ok) {
-      console.error("Upload failed:", data);
+    if (!response.ok) { 
       throw new Error(data.message || "Upload failed.");
     }
 
     return { data };
-  } catch (error) {
-    console.error("Upload error:", error);
+  } catch (error) { 
     throw new Error(error.message || "Upload failed.");
   }
 };
@@ -280,8 +278,7 @@ export const likeProfile = async (userId) => {
     );
 
     return response.data;
-  } catch (error) {
-    console.error("Error liking the profile:", error);
+  } catch (error) { 
     throw error;
   }
 };
@@ -383,8 +380,7 @@ export const postTravelDetails = async (formData) => {
     data_to_send,
     axiosConfig
   );
-
-  console.log("first", response.data);
+ 
   return response.data;
 };
 
@@ -433,8 +429,7 @@ export const getAllWithinCitiesTrips = async (page) => {
 };
 
 // change user details
-export const changeUserDetails = async (userDetails) => {
-  console.log(userDetails)
+export const changeUserDetails = async (userDetails) => { 
   const token = await AsyncStorage.getItem("token");
   const email = await AsyncStorage.getItem("email");
 
@@ -452,6 +447,92 @@ export const changeUserDetails = async (userDetails) => {
   const response = await axios.post(
     `${API.api_url}user/update-profile`,
     requestBody,
+    axiosConfig
+  );
+  return response.data;
+};
+
+// get all chats
+export const getAllChats = async (page) => {
+  const token = await AsyncStorage.getItem("token");
+  const email = await AsyncStorage.getItem("email");
+  const axiosConfig = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+  const data_to_send = {
+    email: email,
+    page: page,
+  };
+  const response = await axios.post(
+    `${API.api_url}user/get-all-chats`,
+    data_to_send,
+    axiosConfig
+  );
+  return response.data;
+};
+
+// send message request
+export const sendMessageRequest = async (receiver_id, message) => {
+  const token = await AsyncStorage.getItem("token");
+  const email = await AsyncStorage.getItem("email");
+  const axiosConfig = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+  const data_to_send = {
+    email: email,
+    message: message,
+    receiver_id: receiver_id,
+  };
+  const response = await axios.post(
+    `${API.api_url}user/send-message-requests`,
+    data_to_send,
+    axiosConfig
+  ); 
+  return response.data;
+};
+
+//  get all message requests
+export const getAllMessageRequest = async (page) => {
+  const token = await AsyncStorage.getItem("token");
+  const email = await AsyncStorage.getItem("email");
+  const axiosConfig = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+  const data_to_send = {
+    email: email,
+    page: page,
+  };
+  const response = await axios.post(
+    `${API.api_url}user/get-message-requests`,
+    data_to_send,
+    axiosConfig
+  );
+  return response.data;
+};
+
+// update message requests
+export const updateMessageRequests = async (id, status) => {
+  const token = await AsyncStorage.getItem("token");
+  const email = await AsyncStorage.getItem("email");
+  const axiosConfig = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+  const data_to_send = {
+    email,
+    id,
+    status,
+  };
+  const response = await axios.post(
+    `${API.api_url}user/update-message-requests`,
+    data_to_send,
     axiosConfig
   );
   return response.data;

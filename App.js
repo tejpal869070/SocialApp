@@ -30,9 +30,9 @@ function MainApp() {
       screenOptions={({ route }) => ({
         tabBarIcon: ({ color, size }) => {
           let iconName;
-          if (route.name === "Home") iconName = "heart";
+          if (route.name === "Home") iconName = "home";
           else if (route.name === "Chats") iconName = "chatbox-ellipses";
-          else if (route.name === "Match") iconName = "star";
+          else if (route.name === "Match") iconName = "heart";
           else if (route.name === "Profile") iconName = "person";
           else if (route.name === "Travel") iconName = "car";
           return <Ionicons name={iconName} size={size} color={color} />;

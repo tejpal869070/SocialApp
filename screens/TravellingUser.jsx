@@ -9,6 +9,7 @@ import {
   TextInput,
   ActivityIndicator,
   RefreshControl,
+  Pressable,
 } from "react-native";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import AddTravelDetail from "../componentes/AddTravelDetail";
@@ -17,9 +18,11 @@ import {
   getAllWithinCitiesTrips,
 } from "../controller/UserController";
 import { ImageBackground } from "react-native";
+import ProfilePopup from "../componentes/Profile/ProfilePopup";
 
 const UserCard = ({ user, isBetweenCities }) => {
   const [showDetail, setShowDetail] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const toggleDetail = () => {
     setShowDetail((prev) => !prev);
@@ -38,7 +41,17 @@ const UserCard = ({ user, isBetweenCities }) => {
     <View style={styles.card}>
       <View style={styles.userCard}>
         <View style={styles.profileContainer}>
-          <Image source={{ uri: safeUser.image }} style={styles.profileImage} />
+          <Pressable
+            onPress={() => {
+              setProfileOpen(true);
+              console.log("sdiuch");
+            }}
+          >
+            <Image
+              source={{ uri: safeUser.image }}
+              style={styles.profileImage}
+            />
+          </Pressable>
           <View style={styles.userInfo}>
             <Text style={styles.userName}>{safeUser.name}</Text>
             {isBetweenCities ? (
@@ -78,6 +91,12 @@ const UserCard = ({ user, isBetweenCities }) => {
           <Text style={styles.userDetail}>{safeUser.detail}</Text>
         </View>
       )}
+
+      <ProfilePopup
+        user_id={user?.user_id}
+        onClose={() => setProfileOpen(false)}
+        isVisible={profileOpen}
+      />
     </View>
   );
 };
@@ -128,7 +147,7 @@ export default function TravellingUser() {
             ...prevData,
             [activeTab]: [...prevData[activeTab], ...filteredNewUsers],
           }));
-          setUsers((prevUsers) => [...prevUsers, ...filteredNewUsers]);
+          // setUsers((prevUsers) => [...prevUsers, ...filteredNewUsers]);
         }
 
         setHasMore((prev) => ({
@@ -156,10 +175,6 @@ export default function TravellingUser() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    setPage((prev) => ({
-      ...prev,
-      [activeTab]: 1, // Reset page to 1 for fresh load
-    }));
 
     const freshUsers = await fetchData(activeTab, 1);
 
@@ -168,15 +183,17 @@ export default function TravellingUser() {
       [activeTab]: freshUsers,
     }));
 
-    const filteredUsers = freshUsers.filter((user) =>
-      selectedCity === "All Cities"
-        ? true
-        : activeTab === "Cities"
-        ? user.from === selectedCity || user.to === selectedCity
-        : user.city === selectedCity
-    );
+    setUsers(freshUsers);
+    setPage((prev) => ({
+      ...prev,
+      [activeTab]: 1,
+    }));
 
-    setUsers(filteredUsers);
+    setHasMore((prev) => ({
+      ...prev,
+      [activeTab]: freshUsers.length > 0,
+    }));
+
     setRefreshing(false);
   };
 
@@ -322,8 +339,8 @@ const styles = StyleSheet.create({
   },
   detailButtonText: {
     textAlign: "right",
-    marginRight : 10,
-    fontStyle : "italic",
+    marginRight: 10,
+    fontStyle: "italic",
   },
   profileContainer: { flexDirection: "row", alignItems: "center", flex: 1 },
   profileImage: { width: 60, height: 60, borderRadius: 6, marginRight: 10 },

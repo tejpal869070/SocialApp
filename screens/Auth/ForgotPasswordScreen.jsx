@@ -63,8 +63,7 @@ const ForgetPasswordScreen = ({ navigation }) => {
         setError("User not found.");
         return;
       }
-    } catch (error) {
-      console.log(error.response.status);
+    } catch (error) { 
       if (error?.response?.status === 400) {
         await SendOtp(email);
         setError("");

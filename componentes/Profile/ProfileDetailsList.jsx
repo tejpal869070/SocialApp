@@ -16,6 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { changeUserDetails, GetCities } from "../../controller/UserController";
 import { SuccessPopup2 } from "../Popups";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 
 const editableFields = [
   "gender",
@@ -170,6 +171,7 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
       field: "dob",
       icon: "calendar-outline",
       iconType: "Ionicons",
+      editable: false,
     },
     {
       label: "Gender",
@@ -177,6 +179,7 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
       field: "gender",
       icon: "male-female-outline",
       iconType: "Ionicons",
+      editable: false,
     },
     {
       label: "Phone",
@@ -198,6 +201,7 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
       field: "city",
       icon: "location",
       iconType: "Ionicons",
+      editable: true,
     },
     {
       label: "Education",
@@ -205,6 +209,7 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
       field: "education",
       icon: "school-outline",
       iconType: "Ionicons",
+      editable: true,
     },
     {
       label: "Profession",
@@ -212,6 +217,7 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
       field: "profession",
       icon: "briefcase-outline",
       iconType: "Ionicons",
+      editable: true,
     },
     {
       label: "Eating Preference",
@@ -219,6 +225,7 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
       field: "eating_preference",
       icon: "restaurant-outline",
       iconType: "Ionicons",
+      editable: true,
     },
     {
       label: "Drinking",
@@ -226,20 +233,23 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
       field: "drinking",
       icon: "beer-outline",
       iconType: "Ionicons",
+      editable: true,
     },
     {
       label: "Hobbies",
       value: hobbies?.length ? hobbies.join(", ") : "Not set",
       field: "hobbies",
-      icon: "palette",
+      icon: "running",
       iconType: "FontAwesome5",
+      editable: true,
     },
     {
       label: "Dating Type",
       value: dating_type?.length ? dating_type.join(", ") : "Not set",
       field: "dating_type",
-      icon: "palette",
+      icon: "heart",
       iconType: "FontAwesome5",
+      editable: true,
     },
   ];
 
@@ -285,6 +295,7 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
                     <Text style={styles.label}>{item.label}</Text>
                     <Text style={styles.value}>{item.value}</Text>
                   </View>
+                  {item.editable && <FontAwesome6 name="edit" size={24} color="black" />}
                 </LinearGradient>
               </TouchableOpacity>
             </Animated.View>

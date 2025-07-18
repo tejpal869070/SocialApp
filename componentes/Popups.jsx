@@ -40,9 +40,41 @@ function SuccessPopup2({ onClose }) {
     <View
       style={[
         styles.overlay,
-        { position: "absolute", top: 0, left: 0, width: width, height: height, zIndex : 100, backgroundColor : "rgba(136, 136, 136, 1)" },
+        {
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: width,
+          height: height,
+          zIndex: 100,
+          backgroundColor: "rgba(136, 136, 136, 1)",
+        },
       ]}
     >
+      <View style={styles.popup}>
+        <View style={[styles.checkmarkContainer, { marginBottom: 5 }]}>
+          <View style={styles.checkmarkCircle}>
+            <Image
+              style={{ width: 50, height: 50 }}
+              source={require("../assets/photos/success-icon-2.png")}
+            />
+          </View>
+        </View>
+        <Text style={styles.title}>Success</Text>
+        <TouchableOpacity
+          style={[styles.button, { marginTop: 10 }]}
+          onPress={onClose}
+        >
+          <Text style={styles.buttonText}>CLOSE</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+function SuccessPopup3({ onClose }) {
+  return (
+    <View style={[styles.overlay]}>
       <View style={styles.popup}>
         <View style={[styles.checkmarkContainer, { marginBottom: 5 }]}>
           <View style={styles.checkmarkCircle}>
@@ -307,4 +339,5 @@ export {
   RequestTripPopup,
   PasswordForgetSuccessPopup,
   SuccessPopup2,
+  SuccessPopup3,
 };

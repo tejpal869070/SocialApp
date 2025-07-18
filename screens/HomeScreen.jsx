@@ -28,7 +28,7 @@ import bg1 from "../assets/photos/app-bg-7.jpg";
 import SideNavBar from "../componentes/SideNavBar";
 import ProfileFilter from "../componentes/ProfileFilter";
 import MatchPopup from "../componentes/HaveMatch";
-import crown from "../assets/photos/crown.png"; 
+import crown from "../assets/photos/crown.png";
 import { CalculateAge } from "../controller/ReusableFunction";
 import { LinearGradient } from "expo-linear-gradient";
 import { GetFeedData, likeProfile } from "../controller/UserController";
@@ -162,7 +162,7 @@ const HomeScreen = ({ navigation }) => {
   const handleImageTap = useCallback(
     (event) => {
       const { locationX } = event.nativeEvent;
-      const halfWidth = width / 2;
+      const halfWidth = width / 2; 
 
       if (locationX < halfWidth && currentImageIndex > 0) {
         animateImageChange(currentImageIndex - 1);
