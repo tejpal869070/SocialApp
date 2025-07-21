@@ -53,8 +53,7 @@ const ProfilePopup = ({ isVisible, onClose, user_id }) => {
     } finally {
       setLoading(false);
     }
-  };
-console.log(match)
+  }; 
   if (!isVisible) return null;
 
   return (
@@ -113,14 +112,8 @@ console.log(match)
                   <Text style={styles.label}>Mobile</Text>
                   <View style={{ maxWidth: "100%" }}>
                     <View style={[styles.value, { maxWidth: "100%" }]}>
-                      <Text>+918690*****</Text>
-                      <Pressable
-                        onPress={() => setShowMobileRequestPopup(true)}
-                      >
-                        <Text style={styles.requestButton}>
-                          Request to show
-                        </Text>
-                      </Pressable>
+                      <Text>Verified </Text>
+                       
                     </View>
                   </View>
                 </View>

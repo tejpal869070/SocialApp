@@ -27,6 +27,7 @@ import {
   VerifyOtp,
 } from "../../controller/UserController";
 import { ErrorPopup, Loading, SuccessPopup } from "../../componentes/Popups";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const SignUpScreen = ({ navigation }) => {
   const [step, setStep] = useState(1); // Start at step 1
@@ -181,7 +182,7 @@ const SignUpScreen = ({ navigation }) => {
 
     setIsLoading(true);
     try {
-      const { token } = await VerifyOtp(email, otp); 
+      const { token } = await VerifyOtp(email, otp);
       const formData = {
         name: fullName,
         email: email,
@@ -191,11 +192,15 @@ const SignUpScreen = ({ navigation }) => {
         mobile: mobile,
         token: token,
       };
-      await UserRegister(formData);
+      const { email2, token2, user_id } = await UserRegister(formData);
+      await AsyncStorage.setItem("token", token2);
+      await AsyncStorage.setItem("user_id", user_id);
+      await AsyncStorage.setItem("email", email2);
+
       setSuccess(true);
       // Reset form after successful registration
       resetForm();
-    } catch (error) { 
+    } catch (error) {
       setError(
         error?.response?.data?.message || "Invalid OTP or registration failed."
       );
@@ -239,7 +244,19 @@ const SignUpScreen = ({ navigation }) => {
               {/* Form */}
               <View style={styles.formContainer}>
                 <Text style={styles.signupText}>
-                  {step === 6 ? "Verify Email" : "Create Account"}
+                  {step === 1
+                    ? "Enter Your Name"
+                    : step === 2
+                    ? `Hi, ${fullName}`
+                    : step === 3
+                    ? "Select Your Date of Birth"
+                    : step === 4
+                    ? "Select Your Gender"
+                    : step === 5
+                    ? "Set Your Password"
+                    : step === 6
+                    ? "Verify Your Email"
+                    : "Create Account"}
                 </Text>
 
                 {step === 1 && (
@@ -583,7 +600,7 @@ const SignUpScreen = ({ navigation }) => {
         <SuccessPopup
           onClose={() => {
             setSuccess(false);
-            navigation.navigate("Login");
+            navigation.navigate("Start");
           }}
         />
       )}
@@ -634,7 +651,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   signupText: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "bold",
     marginBottom: 30,
     color: "#333",

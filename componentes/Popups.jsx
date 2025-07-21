@@ -28,7 +28,7 @@ function SuccessPopup({ onClose }) {
         <Text style={styles.title}>Success</Text>
         <Text style={styles.message}>Account Created</Text>
         <TouchableOpacity style={styles.button} onPress={onClose}>
-          <Text style={styles.buttonText}>Login</Text>
+          <Text style={styles.buttonText}>Go To Home</Text>
         </TouchableOpacity>
       </View>
     </View>

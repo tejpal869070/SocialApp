@@ -78,8 +78,8 @@ export const SendOtp = async (email) => {
   const response = await axios.post(
     `${API.api_url}user/send-otp`,
     data_to_send
-  ); 
-  console.log(response.data)
+  );
+  console.log(response.data);
   return response.data;
 };
 
@@ -111,10 +111,10 @@ export const ForgetPassword = async (email, password, token) => {
 };
 
 // token check
-export const CheckToken = async () => {
+export const CheckToken = async (token) => {
   try {
-    const token = await AsyncStorage.getItem("token");
     const email = await AsyncStorage.getItem("email");
+    console.log(token);
     const axiosConfig = {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -200,12 +200,12 @@ export const uploadImageToServer = async (uri) => {
 
     const data = await response.json();
 
-    if (!response.ok) { 
+    if (!response.ok) {
       throw new Error(data.message || "Upload failed.");
     }
 
     return { data };
-  } catch (error) { 
+  } catch (error) {
     throw new Error(error.message || "Upload failed.");
   }
 };
@@ -278,7 +278,7 @@ export const likeProfile = async (userId) => {
     );
 
     return response.data;
-  } catch (error) { 
+  } catch (error) {
     throw error;
   }
 };
@@ -380,7 +380,7 @@ export const postTravelDetails = async (formData) => {
     data_to_send,
     axiosConfig
   );
- 
+
   return response.data;
 };
 
@@ -429,7 +429,8 @@ export const getAllWithinCitiesTrips = async (page) => {
 };
 
 // change user details
-export const changeUserDetails = async (userDetails) => { 
+export const changeUserDetails = async (userDetails) => {
+  console.log(userDetails);
   const token = await AsyncStorage.getItem("token");
   const email = await AsyncStorage.getItem("email");
 
@@ -491,7 +492,7 @@ export const sendMessageRequest = async (receiver_id, message) => {
     `${API.api_url}user/send-message-requests`,
     data_to_send,
     axiosConfig
-  ); 
+  );
   return response.data;
 };
 

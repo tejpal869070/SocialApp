@@ -9,33 +9,41 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { CheckToken } from "../controller/UserController"; 
+import { CheckToken } from "../controller/UserController";
 import { initializeSocket } from "../controller/Socket";
 
 export default function StartScreen() {
   const navigation = useNavigation();
 
-  useEffect(() => {
-    const checkUser = async () => {
+  useEffect(() => { 
+    const init = async () => {
       try {
-        // 1. Check if token is valid
-        await CheckToken();
+        // 1. Store values in AsyncStorage
+        // await AsyncStorage.getItem("token");
+        await AsyncStorage.getItem("user_id");
+        await AsyncStorage.getItem("email");
 
-        // 2. Retrieve token from AsyncStorage
-        const token = await AsyncStorage.getItem("token");
+        // Optional: confirm storage
+        const storedToken = await AsyncStorage.getItem("token");
+        console.log("Stored token:", storedToken);
 
-        if (token) {
-          // 3. Initialize socket connection with token
-          initializeSocket(token);
-        }
+        // 2. Check token validity
+        await CheckToken(storedToken);
  
+        // 3. Initialize socket with stored token
+        if (storedToken) {
+          initializeSocket(storedToken);
+        }
+
+        // 4. Navigate to Main screen
         navigation.replace("Main");
-      } catch (error) { 
+      } catch (error) {
+        console.log("Error during user check:", error?.response?.data || error);
         navigation.replace("Login");
       }
     };
 
-    checkUser();
+    init();
   }, [navigation]);
 
   return (

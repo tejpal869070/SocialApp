@@ -104,10 +104,8 @@ const HomeProfilePopup = ({
                 <Text style={styles.label}>Mobile</Text>
                 <View style={{ maxWidth: "100%" }}>
                   <View style={[styles.value, { maxWidth: "100%" }]}>
-                    <Text>{match.mobile}</Text>
-                    <Pressable onPress={() => setShowMobileRequestPopup(true)}>
-                      <Text style={styles.requestButton}>Request to show</Text>
-                    </Pressable>
+                    <Text>Verified</Text>
+                     
                   </View>
                 </View>
               </View>

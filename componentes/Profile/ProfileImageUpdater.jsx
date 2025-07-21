@@ -54,13 +54,13 @@ const ProfileImageUpdater = ({
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 1,
-      allowsEditing : true,
+      allowsEditing: true,
       aspect: [4, 5],
     });
 
     if (!result.canceled) {
       try {
-        const response = await uploadImageToServer(result.assets[0].uri); 
+        const response = await uploadImageToServer(result.assets[0].uri);
         if (response?.data?.images && response?.data?.images.length > 0) {
           setImages((prevImages) => [...prevImages, response?.data?.images[0]]);
         }
@@ -69,7 +69,6 @@ const ProfileImageUpdater = ({
       }
     }
   };
- 
 
   const handleDeleteImage = async (imageUrl) => {
     Alert.alert("Delete Image", "Are you sure you want to delete this image?", [
@@ -117,11 +116,14 @@ const ProfileImageUpdater = ({
         <View style={styles.modalOverlay}>
           <View style={styles.popupContainer}>
             <View style={styles.header}>
-              <Text style={styles.headerText}>Profile Photos</Text>
+              <Text style={styles.headerText}>Profile Photo</Text>
               <TouchableOpacity onPress={closeModal}>
                 <Icon name="close" size={24} color="#fff" />
               </TouchableOpacity>
             </View>
+            <Text style={{ color: "#f6fd95ff", fontStyle : "italic", marginBottom :20 }}>
+              Atleast 1 photo is required
+            </Text>
             <View style={styles.imageGrid}>
               {images.map((image, index) => (
                 <View key={index} style={styles.imageContainer}>
@@ -177,7 +179,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 5,
   },
   headerText: {
     fontSize: 20,

@@ -12,12 +12,11 @@ import {
   ActivityIndicator,
   Dimensions,
   Pressable,
+  Switch,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
-import { UserDetails } from "../controller/UserController";
+import { changeUserDetails, UserDetails } from "../controller/UserController";
 import { ErrorPopup } from "../componentes/Popups";
 import ProfileImageUpdater from "../componentes/Profile/ProfileImageUpdater";
 import ProfileDetailsList from "../componentes/Profile/ProfileDetailsList";
@@ -31,13 +30,44 @@ const ProfileScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [profileImagePopup, setProfileImagePopup] = useState(false);
-  const [profileOpen , setProfileOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  const [showProfileUpdater, setShowProfileUpdater] = useState(false);
+
+  const [isPrivateProfile, setIsPrivateProfile] = useState(false);
+  const [isTravellerMode, setIsTravellerMode] = useState(false);
+
+  //  update user settings
+  const updateUserSetting = async (field, value) => {
+    setLoading(true);
+    try {
+      const formData = {
+        [field]: value,
+      };
+
+      await changeUserDetails(formData);
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", `Failed to update ${field}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchUser = async () => {
     try {
       const response = await UserDetails();
       setUser(response);
-    } catch (error) { 
+      setIsTravellerMode(response?.travelers_mode);
+      setIsPrivateProfile(response?.profile_type === "real" ? false : true);
+
+      // check profile images exists or not
+      if (response?.images?.length === 0) {
+        setShowProfileUpdater(true);
+      } else {
+        setShowProfileUpdater(false);
+      }
+    } catch (error) {
       setHasError(true);
     } finally {
       setLoading(false);
@@ -60,6 +90,8 @@ const ProfileScreen = ({ navigation }) => {
     drinking: user?.drinking,
     hobbies: user?.hobbies,
     dating_type: user?.dating_type,
+    bio: user?.bio,
+    name : user?.username,
   };
 
   if (loading) {
@@ -125,7 +157,6 @@ const ProfileScreen = ({ navigation }) => {
               >
                 <Text
                   style={{
-                    textAlign: "center",
                     fontSize: 16,
                     fontWeight: "bold",
                     color: "#fff",
@@ -133,6 +164,12 @@ const ProfileScreen = ({ navigation }) => {
                 >
                   Edit Photos
                 </Text>
+                <Ionicons
+                  name="image"
+                  size={28}
+                  color="#ffffffff"
+                  style={{ width: 28, height: 28, marginLeft: 10 }}
+                />
               </Pressable>
               <Pressable
                 style={styles.infoButton}
@@ -140,7 +177,6 @@ const ProfileScreen = ({ navigation }) => {
               >
                 <Text
                   style={{
-                    textAlign: "center",
                     fontSize: 16,
                     fontWeight: "bold",
                     color: "#fff",
@@ -148,6 +184,65 @@ const ProfileScreen = ({ navigation }) => {
                 >
                   Preview
                 </Text>
+                <Ionicons
+                  name="eye-sharp"
+                  size={28}
+                  color="#ffffffff"
+                  style={{ width: 28, height: 28, marginLeft: 10 }}
+                />
+              </Pressable>
+            </View>
+
+            <View
+              style={{ flexDirection: "row", justifyContent: "space-between" }}
+            >
+              <Pressable style={styles.infoButton}>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "bold",
+                    color: "#fff",
+                  }}
+                >
+                  Private Profile
+                </Text>
+                <Switch
+                  value={isPrivateProfile}
+                  onValueChange={(value) => {
+                    setIsTravellerMode(value);
+                    updateUserSetting(
+                      "profile_type",
+                      value === true ? "fake" : "real"
+                    );
+                  }}
+                  disabled={loading}
+                  trackColor={{ false: "#000000", true: "#53ffe8ff" }}
+                  thumbColor={isTravellerMode ? "#ffffff" : "#eeeeeeff"}
+                />
+              </Pressable>
+              <Pressable style={styles.infoButton}>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "bold",
+                    color: "#fff",
+                  }}
+                >
+                  Traveller Mode
+                </Text>
+                <Switch
+                  value={isTravellerMode}
+                  onValueChange={(value) => {
+                    setIsTravellerMode(value);
+                    updateUserSetting(
+                      "travelers_mode",
+                      value === true ? "Y" : "N"
+                    );
+                  }}
+                  disabled={loading}
+                  trackColor={{ false: "#000000", true: "#53ffe8ff" }}
+                  thumbColor={isTravellerMode ? "#ffffff" : "#eeeeeeff"}
+                />
               </Pressable>
             </View>
           </View>
@@ -160,14 +255,13 @@ const ProfileScreen = ({ navigation }) => {
       </ScrollView>
 
       <ProfileImageUpdater
-        isModalVisible={profileImagePopup}
+        isModalVisible={profileImagePopup || showProfileUpdater}
         closeModal={async () => {
           setProfileImagePopup(false);
           await fetchUser();
         }}
         existingPhotos={user?.images}
       />
-
 
       <ProfilePopup
         user_id={user?.user_id}
@@ -248,9 +342,14 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     padding: 8,
     backgroundColor: "#b189fe",
-    width: "45%",
+    width: "48%",
     marginTop: 20,
     paddingVertical: 10,
+    paddingLeft: 20,
+    flexDirection: "row",
+    maxHeight: 42,
+    minHeight: 40,
+    justifyContent: "space-around",
   },
   location: {
     fontSize: 16,

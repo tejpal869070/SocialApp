@@ -19,7 +19,8 @@ import { SuccessPopup2 } from "../Popups";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 
 const editableFields = [
-  "gender",
+  "name",
+  "bio",
   "education",
   "profession",
   "eating_preference",
@@ -160,11 +161,28 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
     drinking,
     hobbies,
     dating_type,
-    lifestyle,
+    bio,
     city,
+    name,
   } = profile;
 
   const details = [
+    {
+      label: "Name",
+      value: name,
+      field: "name",
+      icon: "person",
+      iconType: "Ionicons",
+      editable: true,
+    },
+    {
+      label: "Bio",
+      value: bio,
+      field: "bio",
+      icon: "star",
+      iconType: "Ionicons",
+      editable: true,
+    },
     {
       label: "Date of Birth",
       value: dob,
@@ -295,7 +313,9 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
                     <Text style={styles.label}>{item.label}</Text>
                     <Text style={styles.value}>{item.value}</Text>
                   </View>
-                  {item.editable && <FontAwesome6 name="edit" size={24} color="black" />}
+                  {item.editable && (
+                    <FontAwesome6 name="edit" size={24} color="black" />
+                  )}
                 </LinearGradient>
               </TouchableOpacity>
             </Animated.View>

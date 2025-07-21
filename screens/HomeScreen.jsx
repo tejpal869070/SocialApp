@@ -31,8 +31,13 @@ import MatchPopup from "../componentes/HaveMatch";
 import crown from "../assets/photos/crown.png";
 import { CalculateAge } from "../controller/ReusableFunction";
 import { LinearGradient } from "expo-linear-gradient";
-import { GetFeedData, likeProfile } from "../controller/UserController";
+import {
+  GetFeedData,
+  likeProfile,
+  UserDetails,
+} from "../controller/UserController";
 import HomeProfilePopup from "../componentes/Profile/HomeProfilePopup";
+import ProfileImageUpdater from "../componentes/Profile/ProfileImageUpdater";
 
 const DEFAULT_IMAGE = "https://via.placeholder.com/300?text=No+Image";
 
@@ -70,6 +75,8 @@ const HomeScreen = ({ navigation }) => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [showLikeEffect, setShowLikeEffect] = useState(false);
+
+  const [showProfileUpdater, setShowProfileUpdater] = useState(false);
 
   const pan = useRef(new Animated.ValueXY()).current;
   const messagePopupAnim = useRef(new Animated.Value(height)).current;
@@ -162,7 +169,7 @@ const HomeScreen = ({ navigation }) => {
   const handleImageTap = useCallback(
     (event) => {
       const { locationX } = event.nativeEvent;
-      const halfWidth = width / 2; 
+      const halfWidth = width / 2;
 
       if (locationX < halfWidth && currentImageIndex > 0) {
         animateImageChange(currentImageIndex - 1);
@@ -292,28 +299,6 @@ const HomeScreen = ({ navigation }) => {
     });
   }, [pan, imageOpacity]);
 
-  const handleSuperLike = useCallback(() => {
-    // Implement super like logic if needed
-    console.log("Super like pressed");
-  }, []);
-
-  const handleNext = useCallback(() => {
-    // Implement next profile logic if needed
-    setCurrentProfileIndex((prev) => prev + 1);
-    setCurrentImageIndex(0);
-    pan.setValue({ x: 0, y: 0 });
-    imageOpacity.setValue(1);
-  }, [pan, imageOpacity]);
-
-  const handleMessage = useCallback(() => {
-    setShowMessagePopup(true);
-    Animated.timing(messagePopupAnim, {
-      toValue: height - 300,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  }, [messagePopupAnim]);
-
   const closeMessage_popup = useCallback(() => {
     Animated.timing(messagePopupAnim, {
       toValue: height,
@@ -337,6 +322,31 @@ const HomeScreen = ({ navigation }) => {
         : DEFAULT_IMAGE,
     [nextProfile.images]
   );
+
+  const checkUser = async () => {
+    const response = await UserDetails();
+    if (response?.images?.length === 0) {
+      setShowProfileUpdater(true);
+    } else {
+      setShowProfileUpdater(false);
+    }
+  };
+
+  useEffect(() => {
+    checkUser();
+  }, []);
+
+  if (showProfileUpdater) {
+    return (
+      <ProfileImageUpdater
+        isModalVisible={showProfileUpdater}
+        closeModal={() => {
+          checkUser();
+          console.log("oihoiu");
+        }}
+      />
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -457,6 +467,18 @@ const HomeScreen = ({ navigation }) => {
                             style={{ width: 200, height: 200 }}
                           />
                         </Animated.View>
+                        <View style={styles.travelers_mode_container}>
+                          <Text style={styles.travelers_mode}>
+                            {currentProfile?.travelers_mode
+                              ? "✈️ Traveler"
+                              : ""}
+                          </Text>
+                          <Text style={[styles.travelers_mode]}>
+                            {currentProfile?.profile_type === "real"
+                              ? "🌍 Public"
+                              : "😷 Private"}
+                          </Text>
+                        </View>
 
                         <LinearGradient
                           colors={[
@@ -469,13 +491,13 @@ const HomeScreen = ({ navigation }) => {
                           locations={[0, 0.8]} // Smooth fade to transparent
                         >
                           <Text style={styles.name}>
-                            {currentProfile.username || "Unknown"}{" "}
+                            {currentProfile.username || "Unknown"}{", "}
                             {currentProfile.dob
                               ? CalculateAge(currentProfile.dob)
                               : "N/A"}
                           </Text>
                           <Text style={styles.location}>
-                            📍 {currentProfile.city || "N/A"}
+                            📍 {currentProfile.city || "Not Disclosed"}
                           </Text>
                         </LinearGradient>
                       </TouchableOpacity>
@@ -637,6 +659,24 @@ const styles = StyleSheet.create({
     // borderColor: "#00FF00",
     // borderRadius: 10,
     transform: [{ rotate: "20deg" }],
+  },
+  travelers_mode_container: {
+    position: "absolute",
+    top: 80,
+    right: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10,
+  },
+  travelers_mode: {
+    color: "black",
+    fontSize: 16,
+    backgroundColor: "#a3c8ffff",
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    fontWeight: "bold",
+    paddingVertical: 1,
   },
   likeText: {
     fontSize: 40,
