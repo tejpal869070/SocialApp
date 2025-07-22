@@ -258,7 +258,6 @@ const SignUpScreen = ({ navigation }) => {
                     ? "Verify Your Email"
                     : "Create Account"}
                 </Text>
-
                 {step === 1 && (
                   <>
                     <Text style={styles.label}>Full Name</Text>
@@ -278,7 +277,6 @@ const SignUpScreen = ({ navigation }) => {
                     </TouchableOpacity>
                   </>
                 )}
-
                 {step === 2 && (
                   <>
                     <Text style={styles.label}>Email</Text>

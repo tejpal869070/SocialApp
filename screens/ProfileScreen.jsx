@@ -6,11 +6,9 @@ import {
   StyleSheet,
   Image,
   ScrollView,
-  TouchableOpacity,
   SafeAreaView,
   ImageBackground,
   ActivityIndicator,
-  Dimensions,
   Pressable,
   Switch,
 } from "react-native";
@@ -20,7 +18,6 @@ import { changeUserDetails, UserDetails } from "../controller/UserController";
 import { ErrorPopup } from "../componentes/Popups";
 import ProfileImageUpdater from "../componentes/Profile/ProfileImageUpdater";
 import ProfileDetailsList from "../componentes/Profile/ProfileDetailsList";
-import UpdateProfileDetails from "../componentes/Profile/UpdateProfileDetails";
 import maleImage from "../assets/photos/male.png";
 import femaleImage from "../assets/photos/female.png";
 import ProfilePopup from "../componentes/Profile/ProfilePopup";
@@ -46,8 +43,7 @@ const ProfileScreen = ({ navigation }) => {
       };
 
       await changeUserDetails(formData);
-    } catch (error) {
-      console.error(error);
+    } catch (error) { 
       Alert.alert("Error", `Failed to update ${field}`);
     } finally {
       setLoading(false);
@@ -91,7 +87,7 @@ const ProfileScreen = ({ navigation }) => {
     hobbies: user?.hobbies,
     dating_type: user?.dating_type,
     bio: user?.bio,
-    name : user?.username,
+    name: user?.username,
   };
 
   if (loading) {
