@@ -27,30 +27,31 @@ const editableFields = [
   "drinking",
   "hobbies",
   "dating_type",
-  "city",
+  "city", 
+  "interested_profile",
 ];
 
-const ProfileDetailsList = ({ profile, refreshData }) => {
+const ProfileDetailsList = ({ profile, refreshData }) => { 
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedField, setSelectedField] = useState(null);
   const [inputValue, setInputValue] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-
-  // For hobbies & dating_type multi input
   const [multiItems, setMultiItems] = useState([]);
   const [multiInput, setMultiInput] = useState("");
-
-  // For city picker
   const [allCities, setAllCities] = useState([]);
   const [citySearch, setCitySearch] = useState("");
   const [filteredCities, setFilteredCities] = useState([]);
   const [loadingCities, setLoadingCities] = useState(false);
-
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    refreshData();
-  }, [success]);
+    if (success) {
+      refreshData();
+      // Reset success after a short delay to prevent immediate re-renders
+      const timer = setTimeout(() => setSuccess(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [success, refreshData]);
 
   useEffect(() => {
     if (modalVisible && selectedField === "city") {
@@ -83,6 +84,7 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
   }, [citySearch, allCities, selectedField]);
 
   const openEditModal = (field, currentValue) => {
+    console.log(currentValue);
     setSelectedField(field);
     if (field === "hobbies" || field === "dating_type") {
       setMultiItems(currentValue || []);
@@ -94,14 +96,30 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
       setInputValue(
         currentValue === "M" || currentValue === "Male" ? "Male" : "Female"
       );
+    } else if (field === "interested_profile") {
+      setInputValue(
+        currentValue === "M"
+          ? "Male"
+          : currentValue === "F"
+          ? "Female"
+          : "Trans"
+      );
     } else {
       setInputValue(currentValue ? currentValue.toString() : "");
     }
-
     setModalVisible(true);
   };
 
   const handleSave = async () => {
+    if (
+      !inputValue &&
+      !multiItems.length &&
+      ["hobbies", "dating_type"].includes(selectedField)
+    ) {
+      Alert.alert("Error", "Please provide a value");
+      return;
+    }
+
     setIsSaving(true);
     let formattedValue;
 
@@ -119,6 +137,9 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
       formattedValue = cityObj.name;
     } else if (["hobbies", "dating_type"].includes(selectedField)) {
       formattedValue = multiItems;
+    } else if (selectedField === "interested_profile") {
+      formattedValue =
+        inputValue === "Male" ? "M" : inputValue === "Female" ? "F" : "T";
     } else {
       formattedValue = inputValue;
     }
@@ -128,6 +149,7 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
     };
 
     try {
+      console.log(formData);
       await changeUserDetails(formData);
       setSuccess(true);
       setModalVisible(false);
@@ -164,6 +186,7 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
     bio,
     city,
     name,
+    interested_profile,
   } = profile;
 
   const details = [
@@ -197,7 +220,20 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
       field: "gender",
       icon: "male-female-outline",
       iconType: "Ionicons",
-      editable: false,
+      editable: false, // Changed to true
+    },
+    {
+      label: "Interested In",
+      value:
+        interested_profile === "M"
+          ? "Male"
+          : interested_profile === "F"
+          ? "Female"
+          : "Trans",
+      field: "interested_profile",
+      icon: "clover",
+      iconType: "FontAwesome6",
+      editable: true,
     },
     {
       label: "Phone",
@@ -205,6 +241,7 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
       field: "phone",
       icon: "call-outline",
       iconType: "Ionicons",
+      editable: false,
     },
     {
       label: "Email",
@@ -212,6 +249,7 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
       field: "email",
       icon: "mail-outline",
       iconType: "Ionicons",
+      editable: false,
     },
     {
       label: "City",
@@ -272,11 +310,8 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
   ];
 
   return (
-    <View style={{ flex: 1, position: success && "absolute" }}>
-      <ScrollView
-        scrollEnabled={!success}
-        contentContainerStyle={styles.listContent}
-      >
+    <View style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={styles.listContent}>
         {details.map((item, index) => {
           const isEditable = editableFields.includes(item.field);
           return (
@@ -296,6 +331,13 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
                 >
                   {item.iconType === "Ionicons" ? (
                     <Ionicons
+                      name={item.icon}
+                      size={28}
+                      color="#ff6f61"
+                      style={styles.icon}
+                    />
+                  ) : item.iconType === "FontAwesome6" ? (
+                    <FontAwesome6
                       name={item.icon}
                       size={28}
                       color="#ff6f61"
@@ -323,7 +365,6 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
         })}
       </ScrollView>
 
-      {/* Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
@@ -331,10 +372,9 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
               Edit {selectedField?.replace(/_/g, " ")}
             </Text>
 
-            {/* Gender picker */}
             {selectedField === "gender" && (
               <View style={styles.optionRow}>
-                {["Female", "Male"].map((option) => (
+                {["Male", "Female"].map((option) => (
                   <TouchableOpacity
                     key={option}
                     style={[
@@ -357,7 +397,31 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
               </View>
             )}
 
-            {/* City searchable picker */}
+            {selectedField === "interested_profile" && (
+              <View style={styles.optionRow}>
+                {["Female", "Male", "Trans"].map((option) => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.optionButton,
+                      inputValue === option && styles.optionButtonSelected,
+                    ]}
+                    onPress={() => setInputValue(option)}
+                    disabled={isSaving}
+                  >
+                    <Text
+                      style={[
+                        styles.optionText,
+                        inputValue === option && styles.optionTextSelected,
+                      ]}
+                    >
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
             {selectedField === "city" && (
               <>
                 <TextInput
@@ -393,7 +457,6 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
               </>
             )}
 
-            {/* Hobbies and Dating Type multi input */}
             {(selectedField === "hobbies" ||
               selectedField === "dating_type") && (
               <>
@@ -433,10 +496,13 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
               </>
             )}
 
-            {/* Default text input */}
-            {!["gender", "city", "hobbies", "dating_type"].includes(
-              selectedField
-            ) && (
+            {![
+              "gender",
+              "city",
+              "hobbies",
+              "dating_type",
+              "interested_profile",
+            ].includes(selectedField) && (
               <TextInput
                 style={styles.input}
                 value={inputValue}

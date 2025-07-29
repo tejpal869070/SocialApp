@@ -75,7 +75,6 @@ const HomeScreen = ({ navigation }) => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [showLikeEffect, setShowLikeEffect] = useState(false);
-
   const [showProfileUpdater, setShowProfileUpdater] = useState(false);
 
   const pan = useRef(new Animated.ValueXY()).current;
@@ -111,32 +110,51 @@ const HomeScreen = ({ navigation }) => {
     [pan.x]
   );
 
-  useEffect(() => {
-    const loadProfiles = async () => {
-      if (loading || !hasMore) return;
-      setLoading(true);
-      try {
-        const newProfiles = await GetFeedData(page);
-        if (newProfiles.length === 0) {
-          setHasMore(false);
-          return;
-        }
-        await preloadImages(newProfiles);
-        setProfiles((prev) => [...prev, ...newProfiles]);
-      } catch (error) {
-        console.error("Error fetching profiles:", error);
-      } finally {
-        setLoading(false);
+  const loadProfiles = useCallback(async () => {
+    if (loading || !hasMore) return;
+    setLoading(true);
+    try {
+      const newProfiles = await GetFeedData(page);
+      if (newProfiles.length < 10) {
+        setHasMore(false);
       }
-    };
+      await preloadImages(newProfiles);
+      setProfiles((prev) => [
+        ...prev,
+        ...newProfiles.filter((np) => !prev.some((p) => p.uid === np.uid)),
+      ]); // Prevent duplicates
+      setPage((prev) => prev + 1); // Move page increment here for clarity
+    } catch (error) {
+      console.error("Error fetching profiles:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, hasMore, loading]);
+
+  useEffect(() => {
     loadProfiles();
-  }, [page, hasMore]);
+  }, [page, loadProfiles]);
 
   useEffect(() => {
     if (currentProfileIndex >= profiles.length - 3 && hasMore && !loading) {
       setPage((prev) => prev + 1);
     }
   }, [currentProfileIndex, profiles.length, hasMore, loading]);
+
+  // Refresh profiles when the Home tab is focused
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", () => {
+      setProfiles([]);
+      setCurrentProfileIndex(0);
+      setCurrentImageIndex(0);
+      setPage(1);
+      setHasMore(true);
+      setLoading(false);
+      loadProfiles();
+    });
+
+    return unsubscribe; // Ensures cleanup on unmount
+  }, [navigation, loadProfiles]);
 
   const closeProfile = useCallback(() => {
     setModalVisible(false);
@@ -238,13 +256,12 @@ const HomeScreen = ({ navigation }) => {
 
   const handleLike = useCallback(() => {
     setLiked(true);
-    setShowLikeEffect(true); // Trigger the like effect
+    setShowLikeEffect(true);
 
     likeProfile(currentProfile.uid).catch((error) => {
       console.error("Error liking profile:", error);
     });
 
-    // Animate the like button and effect
     Animated.parallel([
       Animated.timing(likeButtonScale, {
         toValue: 1.3,
@@ -257,7 +274,6 @@ const HomeScreen = ({ navigation }) => {
         useNativeDriver: true,
       }),
     ]).start(() => {
-      // After animation completes, hide the like effect and move to the next profile
       Animated.parallel([
         Animated.timing(likeButtonScale, {
           toValue: 1,
@@ -278,7 +294,7 @@ const HomeScreen = ({ navigation }) => {
         setCurrentProfileIndex((prev) => prev + 1);
         setCurrentImageIndex(0);
         setLiked(false);
-        setShowLikeEffect(false); // Hide the like effect
+        setShowLikeEffect(false);
         pan.setValue({ x: 0, y: 0 });
         imageOpacity.setValue(1);
         likeButtonScale.setValue(1);
@@ -309,7 +325,7 @@ const HomeScreen = ({ navigation }) => {
 
   const currentProfileImage = useMemo(
     () =>
-      currentProfile.images && currentProfile.images[currentImageIndex]
+      currentProfile.images?.length && currentProfile.images[currentImageIndex]
         ? currentProfile.images[currentImageIndex]
         : DEFAULT_IMAGE,
     [currentProfile.images, currentImageIndex]
@@ -317,7 +333,7 @@ const HomeScreen = ({ navigation }) => {
 
   const nextProfileImage = useMemo(
     () =>
-      nextProfile.images && nextProfile.images[0]
+      nextProfile.images?.length && nextProfile.images[0]
         ? nextProfile.images[0]
         : DEFAULT_IMAGE,
     [nextProfile.images]
@@ -342,7 +358,6 @@ const HomeScreen = ({ navigation }) => {
         isModalVisible={showProfileUpdater}
         closeModal={() => {
           checkUser();
-          console.log("oihoiu");
         }}
       />
     );
@@ -388,6 +403,12 @@ const HomeScreen = ({ navigation }) => {
                 color="#0000ff"
                 style={styles.loader}
               />
+            ) : currentProfileIndex >= profiles.length && !hasMore ? (
+              <View style={styles.noProfilesContainer}>
+                <Text style={styles.noProfilesText}>
+                  No more profiles to show
+                </Text>
+              </View>
             ) : (
               <View style={styles.imageContainer}>
                 {/* Next profile (background) */}
@@ -402,14 +423,11 @@ const HomeScreen = ({ navigation }) => {
                       contentFit="cover"
                     />
                     <LinearGradient
-                      colors={["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0)"]}
-                      style={[
-                        styles.bottomInfoContainer,
-                        { bottom: height * 0.13 },
-                      ]}
-                      start={{ x: 0.5, y: 1 }}
-                      end={{ x: 0.5, y: 0 }}
-                      locations={[0, 1]} // Make sure it's completely transparent
+                      colors={["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0.7)"]} // Updated colors for black shadow
+                      start={{ x: 0.5, y: 0 }}
+                      end={{ x: 0.5, y: 1 }}
+                      locations={[0, 1]}
+                      style={[styles.bottomInfoContainer]}
                     >
                       <Text style={styles.name}>
                         {nextProfile.username || "Unknown"}{" "}
@@ -425,7 +443,7 @@ const HomeScreen = ({ navigation }) => {
                 )}
 
                 {/* Current profile (foreground) */}
-                {currentProfile && (
+                {currentProfile && currentProfileIndex < profiles.length && (
                   <PanGestureHandler
                     onGestureEvent={onPanGestureEvent}
                     onHandlerStateChange={onHandlerStateChange}
@@ -481,17 +499,15 @@ const HomeScreen = ({ navigation }) => {
                         </View>
 
                         <LinearGradient
-                          colors={[
-                            "rgba(255, 255, 255, 0)",
-                            "rgba(0, 0, 0, 0)",
-                          ]}
-                          start={{ x: 0.5, y: 1 }}
-                          end={{ x: 0.5, y: 0 }}
+                          colors={["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0.7)"]}
+                          start={{ x: 0.5, y: 0 }}
+                          end={{ x: 0.5, y: 1 }}
+                          locations={[0, 1]}
                           style={styles.bottomInfoContainer}
-                          locations={[0, 0.8]} // Smooth fade to transparent
                         >
                           <Text style={styles.name}>
-                            {currentProfile.username || "Unknown"}{", "}
+                            {currentProfile.username || "Unknown"}
+                            {", "}
                             {currentProfile.dob
                               ? CalculateAge(currentProfile.dob)
                               : "N/A"}
@@ -522,50 +538,52 @@ const HomeScreen = ({ navigation }) => {
               </View>
             )}
 
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: "white" }]}
-                onPress={handleDislike}
-              >
-                <Text style={styles.actionButtonText}>❌</Text>
-              </TouchableOpacity>
+            {currentProfileIndex < profiles.length && (
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity
+                  style={[styles.actionButton, { backgroundColor: "white" }]}
+                  onPress={handleDislike}
+                >
+                  <Text style={styles.actionButtonText}>❌</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[
-                  styles.actionButton,
-                  {
-                    width: 100,
-                    height: 100,
-                    backgroundColor: liked ? "white" : "black",
-                    borderRadius: 600,
-                    padding: 8,
-                  },
-                ]}
-                onPress={handleLike}
-              >
-                <Animated.Text
+                <TouchableOpacity
                   style={[
-                    styles.actionButtonText,
+                    styles.actionButton,
                     {
-                      fontSize: 70,
-                      transform: [{ scale: likeButtonScale }],
-                      color: liked ? "#00FF00" : "#FFF",
+                      width: 100,
+                      height: 100,
+                      backgroundColor: liked ? "white" : "black",
+                      borderRadius: 600,
+                      padding: 8,
                     },
                   ]}
+                  onPress={handleLike}
                 >
-                  {liked ? "❤️" : "💚"}
-                </Animated.Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: "white" }]}
-                onPress={() => openProfile(currentProfile)}
-              >
-                <Image
-                  style={{ width: 50, height: 50 }}
-                  source={require("../assets/photos/detail.png")}
-                />
-              </TouchableOpacity>
-            </View>
+                  <Animated.Text
+                    style={[
+                      styles.actionButtonText,
+                      {
+                        fontSize: 70,
+                        transform: [{ scale: likeButtonScale }],
+                        color: liked ? "#00FF00" : "#FFF",
+                      },
+                    ]}
+                  >
+                    {liked ? "❤️" : "💚"}
+                  </Animated.Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.actionButton, { backgroundColor: "white" }]}
+                  onPress={() => openProfile(currentProfile)}
+                >
+                  <Image
+                    style={{ width: 50, height: 50 }}
+                    source={require("../assets/photos/detail.png")}
+                  />
+                </TouchableOpacity>
+              </View>
+            )}
           </LinearGradient>
 
           {showMessagePopup && (
@@ -701,11 +719,11 @@ const styles = StyleSheet.create({
   },
   bottomInfoContainer: {
     position: "absolute",
-    bottom: height * 0.08,
+    bottom: height * 0,
     left: 0,
     right: 0,
     padding: 20,
-    height: 160,
+    height: 250,
   },
   statusContainer: {
     flexDirection: "row",
@@ -799,6 +817,17 @@ const styles = StyleSheet.create({
   loader: {
     flex: 1,
     justifyContent: "center",
+  },
+  noProfilesContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  noProfilesText: {
+    fontSize: 24,
+    color: "white",
+    fontWeight: "bold",
+    textAlign: "center",
   },
 });
 

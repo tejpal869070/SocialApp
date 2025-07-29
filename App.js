@@ -118,7 +118,6 @@ export default function App() {
             component={MessagesScreen}
             options={{ title: "Messages", headerShown: false }}
           />
-
           <Stack.Screen
             name="Login"
             component={LoginScreen}

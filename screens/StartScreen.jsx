@@ -11,34 +11,48 @@ import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CheckToken } from "../controller/UserController";
 import { initializeSocket } from "../controller/Socket";
+import * as Location from "expo-location";
 
 export default function StartScreen() {
   const navigation = useNavigation();
 
-  useEffect(() => { 
+  useEffect(() => {
     const init = async () => {
       try {
-        // 1. Store values in AsyncStorage
-        // await AsyncStorage.getItem("token");
         await AsyncStorage.getItem("user_id");
         await AsyncStorage.getItem("email");
+        const token = await AsyncStorage.getItem("token");
 
-        // Optional: confirm storage
-        const storedToken = await AsyncStorage.getItem("token");
-        console.log("Stored token:", storedToken);
+        await CheckToken(token);
 
-        // 2. Check token validity
-        await CheckToken(storedToken);
- 
-        // 3. Initialize socket with stored token
-        if (storedToken) {
-          initializeSocket(storedToken);
+        if (token) {
+          initializeSocket(token);
         }
 
-        // 4. Navigate to Main screen
+        // ✅ Get user's city using location
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          console.log("Location permission not granted");
+        } else {
+          let location = await Location.getCurrentPositionAsync({});
+          let geocode = await Location.reverseGeocodeAsync({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
+
+          if (geocode.length > 0) {
+            const city = geocode[0].city || geocode[0].region;
+            console.log("Detected city:", city);
+
+            // Optional: Store city in AsyncStorage or pass to backend
+            await AsyncStorage.setItem("city", city);
+          }
+        }
+
+        // ✅ Navigate to Main
         navigation.replace("Main");
       } catch (error) {
-        console.log("Error during user check:", error?.response?.data || error);
+        console.log("Startup Error:", error);
         navigation.replace("Login");
       }
     };

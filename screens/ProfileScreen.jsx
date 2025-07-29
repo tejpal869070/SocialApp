@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-
 import {
   View,
   Text,
@@ -11,6 +10,7 @@ import {
   ActivityIndicator,
   Pressable,
   Switch,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -28,22 +28,20 @@ const ProfileScreen = ({ navigation }) => {
   const [hasError, setHasError] = useState(false);
   const [profileImagePopup, setProfileImagePopup] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-
   const [showProfileUpdater, setShowProfileUpdater] = useState(false);
-
   const [isPrivateProfile, setIsPrivateProfile] = useState(false);
   const [isTravellerMode, setIsTravellerMode] = useState(false);
 
-  //  update user settings
+  // Update user settings
   const updateUserSetting = async (field, value) => {
     setLoading(true);
     try {
       const formData = {
         [field]: value,
       };
-
       await changeUserDetails(formData);
-    } catch (error) { 
+      await fetchUser();
+    } catch (error) {
       Alert.alert("Error", `Failed to update ${field}`);
     } finally {
       setLoading(false);
@@ -51,14 +49,15 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   const fetchUser = async () => {
+    setLoading(true);
     try {
       const response = await UserDetails();
       setUser(response);
-      setIsTravellerMode(response?.travelers_mode);
+      setIsTravellerMode(response?.travelers_mode === true ? true : false);
       setIsPrivateProfile(response?.profile_type === "real" ? false : true);
 
-      // check profile images exists or not
-      if (response?.images?.length === 0) {
+      // Check if profile images exist
+      if (!response?.images || response.images.length === 0) {
         setShowProfileUpdater(true);
       } else {
         setShowProfileUpdater(false);
@@ -74,20 +73,22 @@ const ProfileScreen = ({ navigation }) => {
     fetchUser();
   }, []);
 
+  // Safely construct userProfile with null checks
   const userProfile = {
-    phone: user?.mobile,
-    email: user?.email,
-    dob: user?.dob?.split("T")[0],
-    gender: user?.gender,
-    city: user?.city,
-    education: user?.education,
-    profession: user?.profession,
-    eating_preference: user?.eating_preference,
-    drinking: user?.drinking,
-    hobbies: user?.hobbies,
-    dating_type: user?.dating_type,
-    bio: user?.bio,
-    name: user?.username,
+    phone: user?.mobile || "",
+    email: user?.email || "",
+    dob: user?.dob ? user.dob.split("T")[0] : "",
+    gender: user?.gender || "",
+    city: user?.city || "",
+    education: user?.education || "",
+    profession: user?.profession || "",
+    eating_preference: user?.eating_preference || "",
+    drinking: user?.drinking || "",
+    hobbies: user?.hobbies || "",
+    dating_type: user?.dating_type || "",
+    bio: user?.bio || "",
+    name: user?.username || "User",
+    interested_profile: user?.interested_profile || "",
   };
 
   if (loading) {
@@ -139,8 +140,8 @@ const ProfileScreen = ({ navigation }) => {
             >
               <Text style={styles.topName}>{user?.username || "User"}</Text>
               <Text style={styles.location}>
-                <Ionicons name="location-sharp" size={18} color="#ff6f61" />
-                {userProfile.city}
+                <Ionicons name="location-sharp" size={20} color="#ff6f61" />
+                {userProfile.city || "Unknown Location"}
               </Text>
             </LinearGradient>
 
@@ -200,12 +201,12 @@ const ProfileScreen = ({ navigation }) => {
                     color: "#fff",
                   }}
                 >
-                  Private Profile
+                  Private
                 </Text>
                 <Switch
                   value={isPrivateProfile}
                   onValueChange={(value) => {
-                    setIsTravellerMode(value);
+                    setIsPrivateProfile(value); // Fixed: Correct state update
                     updateUserSetting(
                       "profile_type",
                       value === true ? "fake" : "real"
@@ -213,7 +214,7 @@ const ProfileScreen = ({ navigation }) => {
                   }}
                   disabled={loading}
                   trackColor={{ false: "#000000", true: "#53ffe8ff" }}
-                  thumbColor={isTravellerMode ? "#ffffff" : "#eeeeeeff"}
+                  thumbColor={isPrivateProfile ? "#ffffff" : "#eeeeeeff"}
                 />
               </Pressable>
               <Pressable style={styles.infoButton}>
@@ -224,7 +225,7 @@ const ProfileScreen = ({ navigation }) => {
                     color: "#fff",
                   }}
                 >
-                  Traveller Mode
+                  Traveller
                 </Text>
                 <Switch
                   value={isTravellerMode}
@@ -256,11 +257,11 @@ const ProfileScreen = ({ navigation }) => {
           setProfileImagePopup(false);
           await fetchUser();
         }}
-        existingPhotos={user?.images}
+        existingPhotos={user?.images || []}
       />
 
       <ProfilePopup
-        user_id={user?.user_id}
+        user_id={user?.user_id || ""}
         onClose={() => setProfileOpen(false)}
         isVisible={profileOpen}
       />
@@ -351,6 +352,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#555",
     flexDirection: "row",
+    display: "flex",
+    justifyContent: "center",
     alignItems: "center",
   },
   bio: {
