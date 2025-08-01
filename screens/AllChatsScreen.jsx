@@ -173,7 +173,7 @@ const AllChatsScreen = ({ navigation }) => {
             <Text style={styles.name}>{item.username}</Text>
             {activeTab === "Inbox" ? (
               <Text style={styles.lastMessage} numberOfLines={1}>
-                {item.last_message}
+                {item.last_message} {"    "}
               </Text>
             ) : (
               <View style={styles.requestInfo}>
@@ -189,9 +189,12 @@ const AllChatsScreen = ({ navigation }) => {
         <View style={styles.rightSection}>
           {activeTab === "Inbox" ? (
             <>
-              <Text style={styles.timestamp}>{item.timestamp}</Text>
+              <Text style={styles.timestamp}>
+                {item?.last_message_time?.split("T")[0]} {"   "}
+                {item?.last_message_time?.split("T")[1]?.slice(0, 5)}
+              </Text>
               <TouchableOpacity style={styles.callButton}>
-                <Ionicons name="call-outline" size={24} color="#34C759" />
+                <Ionicons name="flash-outline" size={24} color="#e9e9e9ff" />
               </TouchableOpacity>
             </>
           ) : (
@@ -392,6 +395,8 @@ const styles = StyleSheet.create({
   },
   callButton: {
     padding: 5,
+    backgroundColor : "red",
+    borderRadius: 100
   },
   requestButtons: {
     flexDirection: "row",

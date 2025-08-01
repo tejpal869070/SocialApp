@@ -41,8 +41,7 @@ export default function StartScreen() {
           });
 
           if (geocode.length > 0) {
-            const city = geocode[0].city || geocode[0].region;
-            console.log("Detected city:", city);
+            const city = geocode[0].city || geocode[0].region; 
 
             // Optional: Store city in AsyncStorage or pass to backend
             await AsyncStorage.setItem("city", city);
@@ -51,8 +50,7 @@ export default function StartScreen() {
 
         // ✅ Navigate to Main
         navigation.replace("Main");
-      } catch (error) {
-        console.log("Startup Error:", error);
+      } catch (error) { 
         navigation.replace("Login");
       }
     };

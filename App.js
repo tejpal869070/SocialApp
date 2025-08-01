@@ -38,7 +38,13 @@ function MainApp() {
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: "#e91e63",
-        tabBarInactiveTintColor: "gray",
+        tabBarActiveBackgroundColor: "#f0f0f0",
+        tabBarInactiveTintColor: "black",
+        tabBarStyle: {
+          height: 60,
+          paddingBottom: 5,
+          paddingTop: 5,
+        },
       })}
     >
       <Tab.Screen

@@ -5,6 +5,7 @@ import { Platform } from "react-native";
 
 // user register
 export const UserRegister = async (formData) => {
+  console.log(formData)
   const response = await axios.post(`${API.api_url}user/register`, formData);
   return response.data;
 };
@@ -39,6 +40,7 @@ export const UserDetails = async () => {
 export const GetFeedData = async (page) => {
   const token = await AsyncStorage.getItem("token");
   const email = await AsyncStorage.getItem("email");
+  const city = await AsyncStorage.getItem("city");
   const axiosConfig = {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -47,6 +49,7 @@ export const GetFeedData = async (page) => {
   const data_to_send = {
     page: page,
     email: email,
+    city : city || "",
   };
 
   const response = await axios.post(

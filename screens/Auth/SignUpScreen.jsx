@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ import bg1 from "../../assets/photos/app-bg-7.jpg";
 import { OtpInput } from "react-native-otp-entry";
 import {
   CheckUserExisting,
+  GetCities,
   SendOtp,
   UserRegister,
   VerifyOtp,
@@ -32,6 +33,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const SignUpScreen = ({ navigation }) => {
   const [step, setStep] = useState(1); // Start at step 1
   const [fullName, setFullName] = useState("");
+  const [city, setCity] = useState("");
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
   const [dobDate, setDobDate] = useState("");
@@ -44,6 +46,10 @@ const SignUpScreen = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+
+  const [allCities, setAllCities] = useState([]);
+  const [filteredCities, setFilteredCities] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Generate dropdown options for DOB
   const currentYear = new Date().getFullYear();
@@ -73,7 +79,7 @@ const SignUpScreen = ({ navigation }) => {
   const genderOptions = [
     { label: "Male", value: "M", icon: maleIcon },
     { label: "Female", value: "F", icon: femaleIcon },
-    { label: "Both", value: "B", icon: transgenderIcon },
+    { label: "Trans", value: "T", icon: transgenderIcon },
   ];
 
   const handleContinue = async () => {
@@ -81,6 +87,9 @@ const SignUpScreen = ({ navigation }) => {
     if (step === 1) {
       if (!fullName.trim()) {
         setError("Please enter your full name.");
+        return;
+      } else if (!city.trim()) {
+        setError("Please enter your city.");
         return;
       }
     }
@@ -185,6 +194,7 @@ const SignUpScreen = ({ navigation }) => {
       const { token } = await VerifyOtp(email, otp);
       const formData = {
         name: fullName,
+        city: city,
         email: email,
         dob: `${dobYear}-${dobMonth}-${dobDate}`,
         gender: gender,
@@ -208,6 +218,41 @@ const SignUpScreen = ({ navigation }) => {
       setIsLoading(false);
     }
   };
+
+  const handleCityChange = (text) => {
+    setCity(text);
+
+    if (text.length === 0) {
+      setFilteredCities([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    const matches = allCities.filter((city) =>
+      city.name.toLowerCase().includes(text.toLowerCase())
+    );
+
+    setFilteredCities(matches.slice(0, 5));
+    setShowSuggestions(true);
+  };
+
+  const handleCitySelect = (selectedCity) => {
+    setCity(selectedCity.name);
+    setShowSuggestions(false);
+  };
+
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        const response = await GetCities();
+        setAllCities(response);
+      } catch (error) {
+        console.error("Failed to fetch cities:", error);
+      }
+    };
+
+    fetchCities();
+  }, []);
 
   const resetForm = () => {
     setFullName("");
@@ -268,8 +313,35 @@ const SignUpScreen = ({ navigation }) => {
                       placeholder="Full Name"
                       placeholderTextColor="#999"
                     />
+                    <View style={{ position: "relative", zIndex: 1 }}>
+                      <Text style={styles.label}>Your City</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={city}
+                        onChangeText={handleCityChange}
+                        placeholder="City"
+                        placeholderTextColor="#999"
+                      />
+
+                      {showSuggestions && filteredCities.length > 0 && (
+                        <View style={styles.dropdown}>
+                          {filteredCities.map((cityItem) => (
+                            <TouchableOpacity
+                              key={cityItem.id}
+                              style={styles.dropdownItem}
+                              onPress={() => handleCitySelect(cityItem)}
+                            >
+                              <Text>
+                                {cityItem.name}, {cityItem.state}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+
                     <TouchableOpacity
-                      style={[styles.signUpButton, { marginTop: 20 }]}
+                      style={styles.signUpButton}
                       onPress={handleContinue}
                       disabled={isLoading}
                     >
@@ -763,6 +835,27 @@ const styles = StyleSheet.create({
   Otpcontainer: {
     marginBottom: 10,
     borderRadius: 15,
+  },
+  dropdown: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 5,
+    marginTop: 6,
+    elevation: 3, // for Android shadow
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 }, // iOS shadow
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    position: "absolute",
+    top: 65,
+    width: "100%",
+    zIndex: 5,
+  },
+  dropdownItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
   },
 });
 

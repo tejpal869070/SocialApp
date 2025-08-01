@@ -27,7 +27,6 @@ import { Image } from "expo-image";
 import bg1 from "../assets/photos/app-bg-7.jpg";
 import SideNavBar from "../componentes/SideNavBar";
 import ProfileFilter from "../componentes/ProfileFilter";
-import MatchPopup from "../componentes/HaveMatch";
 import crown from "../assets/photos/crown.png";
 import { CalculateAge } from "../controller/ReusableFunction";
 import { LinearGradient } from "expo-linear-gradient";
@@ -474,17 +473,19 @@ const HomeScreen = ({ navigation }) => {
                           contentFit="cover"
                         />
 
-                        <Animated.View
-                          style={{
-                            ...styles.likeTextOverlay,
-                            opacity: likeTextOpacityInterpolate,
-                          }}
-                        >
-                          <Image
-                            source={require("../assets/photos/like-text-effect-png.png")}
-                            style={{ width: 200, height: 200 }}
-                          />
-                        </Animated.View>
+                        {!liked && (
+                          <Animated.View
+                            style={{
+                              ...styles.likeTextOverlay,
+                              opacity: likeTextOpacityInterpolate,
+                            }}
+                          >
+                            <Image
+                              source={require("../assets/photos/like-text-effect-png.png")}
+                              style={{ width: 200, height: 200 }}
+                            />
+                          </Animated.View>
+                        )}
                         <View style={styles.travelers_mode_container}>
                           <Text style={styles.travelers_mode}>
                             {currentProfile?.travelers_mode
