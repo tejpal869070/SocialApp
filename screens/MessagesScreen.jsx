@@ -11,6 +11,8 @@ import {
   Platform,
   ImageBackground,
   Keyboard,
+  Modal,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
@@ -26,6 +28,9 @@ const MessageScreen = ({ navigation, route }) => {
   const flatListRef = useRef(null);
   const [myUserId, setMyUserId] = useState(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
 
   // Scroll to bottom when messages update
   const scrollToBottom = () => {
@@ -71,6 +76,7 @@ const MessageScreen = ({ navigation, route }) => {
       { other_user_id: user.other_user_id, page: 1 },
       (response) => {
         if (response.status === "success") {
+          console.log("this is", response?.data[response?.data?.length - 1]);
           const formatted = response.data.map((msg) => ({
             id: msg.id.toString(),
             text: msg.message,
@@ -102,7 +108,7 @@ const MessageScreen = ({ navigation, route }) => {
         return;
 
       const msg = {
-        id: Date.now().toString(),
+        id: data.id,
         text: data.message,
         sender: "other",
         timestamp: new Date().toLocaleTimeString("en-US", {
@@ -120,17 +126,25 @@ const MessageScreen = ({ navigation, route }) => {
   }, [user.other_user_id]);
 
   const sendMessage = () => {
-    if (newMessage.trim() === "") return;
+    if (newMessage.trim() === "" || !user?.other_user_id) return;
 
     const socket = getSocket();
+    if (!socket || !socket.connected) {
+      console.warn("Socket not connected");
+      return;
+    }
+
     const timestamp = new Date().toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: true,
     });
 
+    const tempId = `temp-${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(2, 8)}`; // Temporary unique ID
     const msg = {
-      id: Date.now().toString(),
+      id: tempId,
       text: newMessage,
       sender: "me",
       timestamp,
@@ -145,30 +159,76 @@ const MessageScreen = ({ navigation, route }) => {
         message: newMessage,
       },
       (res) => {
-        if (res.status !== "ok") console.warn("Send failed:", res);
+        if (res.data.id) {
+          // Update message with server-assigned ID
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === tempId ? { ...m, id: res.data.id.toString() } : m
+            )
+          );
+        } else {
+          console.warn("Send failed:", res);
+          // Remove message if server fails
+          setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        }
       }
     );
 
     setNewMessage("");
   };
 
+  const handleLongPress = (item, event) => {
+    if (item.sender === "me") {
+      const { pageX, pageY } = event.nativeEvent;
+      setSelectedMessage(item);
+      console.log(item);
+      setModalPosition({ x: pageX, y: pageY });
+      setDeleteModalVisible(true);
+    }
+  };
+
+  const deleteMessage = () => {
+    if (!selectedMessage) return;
+
+    const socket = getSocket();
+    socket.emit(
+      "deleteMessage",
+      { message_id: selectedMessage.id },
+      (response) => {
+        if (response.status === "success") {
+          setMessages((prev) =>
+            prev.filter((msg) => msg.id !== selectedMessage.id)
+          );
+          setDeleteModalVisible(false);
+          setSelectedMessage(null);
+        } else {
+          console.warn("Failed to delete message", response);
+        }
+      }
+    );
+  };
+
   const renderMessage = ({ item }) => (
-    <View
-      style={[
-        styles.messageContainer,
-        item.sender === "me" ? styles.messageSent : styles.messageReceived,
-      ]}
+    <TouchableOpacity
+      onLongPress={(event) => handleLongPress(item, event)}
+      disabled={item.sender !== "me"}
     >
-      <Text style={styles.messageText}>{item.text}</Text>
-      <Text style={styles.messageTimestamp}>{item.timestamp}</Text>
-    </View>
+      <View
+        style={[
+          styles.messageContainer,
+          item.sender === "me" ? styles.messageSent : styles.messageReceived,
+        ]}
+      >
+        <Text style={styles.messageText}>{item.text}</Text>
+        <Text style={styles.messageTimestamp}>{item.timestamp}</Text>
+      </View>
+    </TouchableOpacity>
   );
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      // keyboardVerticalOffset={80}
     >
       <ImageBackground source={bg4} style={{ flex: 1 }}>
         {/* Header */}
@@ -178,25 +238,6 @@ const MessageScreen = ({ navigation, route }) => {
           </TouchableOpacity>
           <Image source={{ uri: user.images }} style={styles.profilePic} />
           <Text style={styles.headerText}>{user.username}</Text>
-
-          <View style={styles.headerIcons}>
-            <TouchableOpacity>
-              <Ionicons
-                name="call-outline"
-                size={24}
-                color="#fff"
-                style={styles.icon}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity>
-              <Ionicons
-                name="videocam-outline"
-                size={24}
-                color="#fff"
-                style={styles.icon}
-              />
-            </TouchableOpacity>
-          </View>
         </View>
 
         {/* Chat Messages */}
@@ -212,6 +253,37 @@ const MessageScreen = ({ navigation, route }) => {
           showsVerticalScrollIndicator={false}
           onContentSizeChange={scrollToBottom}
         />
+
+        {/* Delete Message Modal */}
+        <Modal
+          animationType="none"
+          transparent={true}
+          visible={deleteModalVisible}
+          onRequestClose={() => setDeleteModalVisible(false)}
+        >
+          <TouchableWithoutFeedback
+            onPress={() => setDeleteModalVisible(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View
+                style={[
+                  styles.modalContent,
+                  {
+                    top: modalPosition.y,
+                    left: modalPosition.x * 0.9,
+                  },
+                ]}
+              >
+                <TouchableOpacity
+                  style={styles.modalButton}
+                  onPress={deleteMessage}
+                >
+                  <Text style={styles.modalButtonText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
 
         {/* Message Input */}
         <View style={styles.inputContainer}>
@@ -314,6 +386,30 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 10,
     marginLeft: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "transparent",
+    width: "100%",
+  },
+  modalContent: {
+    position: "absolute",
+    backgroundColor: "#fff",
+    borderRadius: 5,
+    padding: 5,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    marginRight: 20,
+  },
+  modalButton: {
+    padding: 10,
+  },
+  modalButtonText: {
+    color: "#FF3B30",
+    fontSize: 16,
   },
 });
 

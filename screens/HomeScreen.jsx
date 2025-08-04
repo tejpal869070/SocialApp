@@ -110,50 +110,63 @@ const HomeScreen = ({ navigation }) => {
   );
 
   const loadProfiles = useCallback(async () => {
+    console.log("page", page)
     if (loading || !hasMore) return;
+
     setLoading(true);
     try {
       const newProfiles = await GetFeedData(page);
+      console.log("newProfiles", newProfiles.length)
       if (newProfiles.length < 10) {
         setHasMore(false);
       }
+
       await preloadImages(newProfiles);
+
       setProfiles((prev) => [
         ...prev,
         ...newProfiles.filter((np) => !prev.some((p) => p.uid === np.uid)),
-      ]); // Prevent duplicates
-      setPage((prev) => prev + 1); // Move page increment here for clarity
+      ]);
+
+      setPage((prev) => prev + 1);
     } catch (error) {
       console.error("Error fetching profiles:", error);
     } finally {
       setLoading(false);
     }
-  }, [page, hasMore, loading]);
+  }, [loading, hasMore, page]);
 
   useEffect(() => {
     loadProfiles();
-  }, [page, loadProfiles]);
+  }, []); //
 
   useEffect(() => {
     if (currentProfileIndex >= profiles.length - 3 && hasMore && !loading) {
-      setPage((prev) => prev + 1);
+      loadProfiles();
     }
-  }, [currentProfileIndex, profiles.length, hasMore, loading]);
+  }, [currentProfileIndex, profiles.length, hasMore, loading, loadProfiles]);
 
   // Refresh profiles when the Home tab is focused
   useEffect(() => {
-    const unsubscribe = navigation.addListener("focus", () => {
+    const unsubscribe = navigation.addListener("focus", async () => {
       setProfiles([]);
       setCurrentProfileIndex(0);
       setCurrentImageIndex(0);
       setPage(1);
       setHasMore(true);
       setLoading(false);
-      loadProfiles();
+
+      const newProfiles = await GetFeedData(1);
+      if (newProfiles.length < 10) {
+        setHasMore(false);
+      }
+      await preloadImages(newProfiles);
+      setProfiles(newProfiles);
+      setPage(2); // next page to fetch
     });
 
-    return unsubscribe; // Ensures cleanup on unmount
-  }, [navigation, loadProfiles]);
+    return unsubscribe;
+  }, [navigation]);
 
   const closeProfile = useCallback(() => {
     setModalVisible(false);

@@ -116,8 +116,7 @@ export const ForgetPassword = async (email, password, token) => {
 // token check
 export const CheckToken = async (token) => {
   try {
-    const email = await AsyncStorage.getItem("email");
-    console.log(token);
+    const email = await AsyncStorage.getItem("email"); 
     const axiosConfig = {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -126,6 +125,8 @@ export const CheckToken = async (token) => {
     const data_to_send = {
       email: email,
     };
+
+    console.log("first", email, token)
     const response = await axios.post(
       `${API.api_url}user/token-check`,
       data_to_send,

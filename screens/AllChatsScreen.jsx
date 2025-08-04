@@ -8,10 +8,13 @@ import {
   StyleSheet,
   TextInput,
   ActivityIndicator,
-  Pressable,
+  Pressable, 
+  Alert,
+  Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
+import { Vibration } from "react-native"; // Use react-native Vibration
 import {
   getAllMessageRequest,
   updateMessageRequests,
@@ -20,6 +23,7 @@ import { CalculateAge } from "../controller/ReusableFunction";
 import ProfilePopup from "../componentes/Profile/ProfilePopup";
 import { Loading, SuccessPopup3 } from "../componentes/Popups";
 import { getSocket } from "../controller/Socket";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Default user data for missing details
 const defaultUser = {
@@ -42,10 +46,26 @@ const AllChatsScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [profileOpen, setOpenProfile] = useState(false);
-
   const [user_id, setUser_id] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [deleteChatId, setDeleteChatId] = useState(null);
+  const [recivingNudge, setRecivingNudge] = useState(false);
+  const [nudgeSender, setNudgeSender] = useState(""); // Store sender's username
+  const [currentUserId, setCurrentUserId] = useState(null);
+
+  useEffect(() => {
+    const fetchUserId = async () => {
+      try {
+        const userId = await AsyncStorage.getItem("user_id");
+        setCurrentUserId(userId);
+      } catch (error) {
+        console.error("Failed to get user ID from storage:", error);
+      }
+    };
+
+    fetchUserId();
+  }, []);
 
   // Callback to handle missing user details
   const fillMissingUserDetails = useCallback((user) => {
@@ -55,6 +75,37 @@ const AllChatsScreen = ({ navigation }) => {
       id: user.id || `unknown-${Math.random().toString(36).substr(2, 9)}`,
     };
   }, []);
+
+  // Initialize Socket.IO nudge listener
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) {
+      console.warn("⚠️ Socket not initialized");
+      return;
+    }
+
+    socket.emit("register", currentUserId); // Register user ID with socket
+
+    // Listen for incoming nudge
+    socket.on("receiveNudge", ({ from }) => {
+      console.log(`Received nudge from ${from} `);
+      if (currentUserId && from !== currentUserId) {
+        // Ensure it's not the sender
+        setNudgeSender(senderUsername || "Someone");
+        setRecivingNudge(true);
+        Vibration.vibrate(3000); // Vibrate for 3 seconds
+        setTimeout(() => {
+          setRecivingNudge(false);
+          setNudgeSender("");
+        }, 3000);
+      }
+    });
+
+    // Cleanup listener on unmount
+    return () => {
+      socket.off("receiveNudge");
+    };
+  }, [currentUserId]);
 
   const fetchInboxChats = useCallback(
     async (page = 1, isRefresh = false) => {
@@ -79,8 +130,7 @@ const AllChatsScreen = ({ navigation }) => {
           setInboxChats((prev) =>
             isRefresh ? filledData : [...prev, ...filledData]
           );
-
-          // Optional: if you implement manual pagination
+          setInboxTotalPages(response.totalPages || 1);
           setInboxPage(page);
         });
       } catch (error) {
@@ -93,18 +143,16 @@ const AllChatsScreen = ({ navigation }) => {
     [fillMissingUserDetails]
   );
 
-  // Fetch message requests
   const fetchMessageRequests = useCallback(
     async (page, isRefresh = false) => {
       try {
         setLoading(true);
         const response = await getAllMessageRequest(page);
-        console.log(response);
         const filledData = response?.map(fillMissingUserDetails);
         setRequestsChats((prev) =>
           isRefresh ? filledData : [...prev, ...filledData]
         );
-        setRequestsTotalPages(response.totalPages);
+        setRequestsTotalPages(response.totalPages || 1);
         setRequestsPage(response.currentPage);
       } catch (error) {
         console.error("Error fetching message requests:", error);
@@ -116,7 +164,6 @@ const AllChatsScreen = ({ navigation }) => {
     [fillMissingUserDetails]
   );
 
-  // Initial fetch and tab switch handling
   useEffect(() => {
     if (activeTab === "Inbox") {
       fetchInboxChats(1, true);
@@ -125,7 +172,6 @@ const AllChatsScreen = ({ navigation }) => {
     }
   }, [activeTab, fetchInboxChats, fetchMessageRequests]);
 
-  // Load more data when reaching the end of the list
   const loadMore = () => {
     if (loading) return;
     if (activeTab === "Inbox" && inboxPage < inboxTotalPages) {
@@ -135,7 +181,6 @@ const AllChatsScreen = ({ navigation }) => {
     }
   };
 
-  // Handle pull-to-refresh
   const onRefresh = () => {
     setRefreshing(true);
     if (activeTab === "Inbox") {
@@ -147,17 +192,107 @@ const AllChatsScreen = ({ navigation }) => {
     }
   };
 
+  // Handle chat deletion
+  const handleDeleteChat = useCallback(async (other_user_id) => {
+    const socket = getSocket();
+    if (!socket?.connected) {
+      console.warn("⚠️ Socket not connected");
+      return;
+    }
+
+    setProcessing(true);
+    console.log("Deleting chat for user:", other_user_id);
+    try {
+      socket.emit("deleteChat", { other_user_id }, (response) => {
+        if (response.status) {
+          setInboxChats((prev) =>
+            prev.filter((chat) => chat.other_user_id !== other_user_id)
+          );
+          setSuccess(true);
+        } else {
+          console.error("❌ Failed to delete chat:", response.error);
+          Alert.alert("Error", "Failed to delete chat. Please try again.");
+        }
+      });
+    } catch (error) {
+      console.error("Error deleting chat via socket:", error);
+      Alert.alert("Error", "An error occurred while deleting the chat.");
+    } finally {
+      setProcessing(false);
+      setDeleteChatId(null);
+    }
+  }, []);
+
+  // Show delete confirmation popup
+  const showDeleteConfirmation = (chatId) => {
+    setDeleteChatId(chatId);
+    Alert.alert(
+      "Delete Chat",
+      "Are you sure you want to delete this chat?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+          onPress: () => setDeleteChatId(null),
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => handleDeleteChat(chatId),
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  // Handle sending nudge
+  const sendNudge = useCallback(
+    (receiverId) => {
+      const socket = getSocket();
+      if (!socket?.connected) {
+        console.warn("⚠️ Socket not connected");
+        Alert.alert(
+          "Error",
+          "Unable to send nudge. Please check your connection."
+        );
+        return;
+      }
+
+      // Find sender's username from inboxChats
+      const senderChat = inboxChats.find(
+        (chat) => chat.other_user_id === currentUserId
+      );
+      const senderUsername = senderChat?.username || "Unknown User";
+
+      socket.emit(
+        "sendNudge",
+        { senderId: currentUserId, receiverId, senderUsername },
+        (response) => {
+          if (response?.status) {
+            console.log(`Nudge sent to ${receiverId}`);
+            Alert.alert("Success", "Nudge sent!");
+          } else {
+            console.error("❌ Failed to send nudge:", response?.error);
+            Alert.alert("Error", "Failed to send nudge. Please try again.");
+          }
+        }
+      );
+    },
+    [currentUserId, inboxChats]
+  );
+
   const renderChatItem = ({ item }) => {
     return (
-      <View
+      <Pressable
         style={styles.chatItem}
-        // onPress={() => navigation.navigate("Messages", { chatId: item.id })}
+        onLongPress={() => showDeleteConfirmation(item.other_user_id)}
       >
         <Pressable
           onPress={() => {
             setOpenProfile(true);
             setUser_id(item.other_user_id);
           }}
+          onLongPress={() => showDeleteConfirmation(item.other_user_id)}
         >
           <Image
             source={{ uri: item.images }}
@@ -168,6 +303,7 @@ const AllChatsScreen = ({ navigation }) => {
         <Pressable
           style={{ flex: 1 }}
           onPress={() => navigation.navigate("Messages", { user: item })}
+          onLongPress={() => showDeleteConfirmation(item.other_user_id)}
         >
           <View style={[styles.chatInfo]}>
             <Text style={styles.name}>{item.username}</Text>
@@ -185,7 +321,6 @@ const AllChatsScreen = ({ navigation }) => {
           </View>
         </Pressable>
 
-        {/* Right Section */}
         <View style={styles.rightSection}>
           {activeTab === "Inbox" ? (
             <>
@@ -193,7 +328,10 @@ const AllChatsScreen = ({ navigation }) => {
                 {item?.last_message_time?.split("T")[0]} {"   "}
                 {item?.last_message_time?.split("T")[1]?.slice(0, 5)}
               </Text>
-              <TouchableOpacity style={styles.callButton}>
+              <TouchableOpacity
+                style={styles.callButton}
+                onPress={() => sendNudge(item.other_user_id)}
+              >
                 <Ionicons name="flash-outline" size={24} color="#e9e9e9ff" />
               </TouchableOpacity>
             </>
@@ -214,11 +352,10 @@ const AllChatsScreen = ({ navigation }) => {
             </View>
           )}
         </View>
-      </View>
+      </Pressable>
     );
   };
 
-  // Handlers for request actions
   const handleRequest = async (id, status) => {
     setProcessing(true);
     try {
@@ -244,7 +381,6 @@ const AllChatsScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {/* Tabs */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tab, activeTab === "Inbox" && styles.activeTab]}
@@ -274,7 +410,6 @@ const AllChatsScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Chat List */}
       <FlatList
         data={activeTab === "Inbox" ? inboxChats : requestsChats}
         renderItem={renderChatItem}
@@ -311,6 +446,27 @@ const AllChatsScreen = ({ navigation }) => {
       )}
 
       {processing && <Loading />}
+
+      {/* Nudge Modal */}
+      <Modal animationType="fade" transparent={true} visible={recivingNudge}>
+        <View style={styles.nudgeContainer}>
+          <View style={styles.nudgePopup}>
+            <Ionicons name="flash" size={40} color="#6200EE" />
+            <Text style={styles.nudgeText}>
+              You received a nudge from {nudgeSender}!
+            </Text>
+            <TouchableOpacity
+              style={styles.nudgeButton}
+              onPress={() => {
+                setRecivingNudge(false);
+                setNudgeSender("");
+              }}
+            >
+              <Text style={styles.nudgeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <StatusBar style="light" />
     </View>
@@ -395,8 +551,8 @@ const styles = StyleSheet.create({
   },
   callButton: {
     padding: 5,
-    backgroundColor : "red",
-    borderRadius: 100
+    backgroundColor: "red",
+    borderRadius: 100,
   },
   requestButtons: {
     flexDirection: "row",

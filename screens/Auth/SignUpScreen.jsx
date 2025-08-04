@@ -748,6 +748,9 @@ const styles = StyleSheet.create({
   dobInput: {
     flex: 1,
     marginHorizontal: 5,
+    padding : 8,
+    height : 40,
+    textAlign : 'center',
   },
   genderContainer: {
     flexDirection: "row",
@@ -794,9 +797,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 30,
     alignItems: "center",
-    width: "40%",
+    // width: "40%",
     alignSelf: "center",
     marginBottom: 20,
+    paddingHorizontal : 20,
   },
   backButton: {
     backgroundColor: "#666",

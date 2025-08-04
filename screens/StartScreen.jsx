@@ -19,38 +19,16 @@ export default function StartScreen() {
   useEffect(() => {
     const init = async () => {
       try {
-        await AsyncStorage.getItem("user_id");
-        await AsyncStorage.getItem("email");
         const token = await AsyncStorage.getItem("token");
 
-        await CheckToken(token);
+        if (!token) throw new Error("No token");
 
-        if (token) {
-          initializeSocket(token);
-        }
+        await CheckToken(token); // This should throw if invalid
 
-        // ✅ Get user's city using location
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          console.log("Location permission not granted");
-        } else {
-          let location = await Location.getCurrentPositionAsync({});
-          let geocode = await Location.reverseGeocodeAsync({
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
-          });
+        initializeSocket(token); // Initialize socket only if valid
 
-          if (geocode.length > 0) {
-            const city = geocode[0].city || geocode[0].region; 
-
-            // Optional: Store city in AsyncStorage or pass to backend
-            await AsyncStorage.setItem("city", city);
-          }
-        }
-
-        // ✅ Navigate to Main
         navigation.replace("Main");
-      } catch (error) { 
+      } catch (error) {
         navigation.replace("Login");
       }
     };
