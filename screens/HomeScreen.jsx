@@ -30,6 +30,7 @@ import ProfileFilter from "../componentes/ProfileFilter";
 import crown from "../assets/photos/crown.png";
 import { CalculateAge } from "../controller/ReusableFunction";
 import { LinearGradient } from "expo-linear-gradient";
+import border1 from "../assets/photos/love-border.png";
 import {
   GetFeedData,
   likeProfile,
@@ -110,13 +111,13 @@ const HomeScreen = ({ navigation }) => {
   );
 
   const loadProfiles = useCallback(async () => {
-    console.log("page", page)
+    console.log("page", page);
     if (loading || !hasMore) return;
 
     setLoading(true);
     try {
       const newProfiles = await GetFeedData(page);
-      console.log("newProfiles", newProfiles.length)
+      console.log("newProfiles", newProfiles.length);
       if (newProfiles.length < 10) {
         setHasMore(false);
       }
@@ -403,7 +404,7 @@ const HomeScreen = ({ navigation }) => {
           </View>
 
           <LinearGradient
-            colors={["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0)"]}
+            colors={["rgba(255, 99, 112, 1)", "rgba(0, 0, 0, 0.53)"]}
             start={{ x: 0.5, y: 1 }}
             end={{ x: 0.5, y: 0 }}
             locations={[0, 0.9]}
@@ -435,14 +436,14 @@ const HomeScreen = ({ navigation }) => {
                       contentFit="cover"
                     />
                     <LinearGradient
-                      colors={["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0.7)"]} // Updated colors for black shadow
+                      colors={["rgba(255, 255, 255, 0)", "rgba(0, 0, 0, 0.7)"]} // Updated colors for black shadow
                       start={{ x: 0.5, y: 0 }}
                       end={{ x: 0.5, y: 1 }}
                       locations={[0, 1]}
-                      style={[styles.bottomInfoContainer]}
+                      style={[styles.bottomInfoContainerNext]}
                     >
                       <Text style={styles.name}>
-                        {nextProfile.username || "Unknown"}{" "}
+                        {nextProfile.username || "Unknown"}
                         {nextProfile.dob
                           ? CalculateAge(nextProfile.dob)
                           : "N/A"}
@@ -527,7 +528,10 @@ const HomeScreen = ({ navigation }) => {
                               : "N/A"}
                           </Text>
                           <Text style={styles.location}>
-                            📍 {currentProfile.city || "Not Disclosed"}
+                            🏠 {currentProfile.city || "Not Disclosed"}
+                          </Text>
+                          <Text style={styles.location}>
+                            💼 {currentProfile?.profession}
                           </Text>
                         </LinearGradient>
                       </TouchableOpacity>
@@ -584,7 +588,7 @@ const HomeScreen = ({ navigation }) => {
                       },
                     ]}
                   >
-                    {liked ? "❤️" : "💚"}
+                    {liked ? "❤️" : "🤍"}
                   </Animated.Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -679,7 +683,7 @@ const styles = StyleSheet.create({
   },
   profileImage: {
     width: width,
-    height: height * 0.95,
+    height: height * 0.75,
     borderRadius: 0,
   },
   likeTextOverlay: {
@@ -733,11 +737,19 @@ const styles = StyleSheet.create({
   },
   bottomInfoContainer: {
     position: "absolute",
-    bottom: height * 0,
+    bottom: 0,
     left: 0,
     right: 0,
     padding: 20,
-    height: 250,
+    height: 120,
+  },
+  bottomInfoContainerNext: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+    height: 0,
   },
   statusContainer: {
     flexDirection: "row",

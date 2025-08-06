@@ -82,7 +82,7 @@ const AllChatsScreen = ({ navigation }) => {
     if (!socket) {
       console.warn("⚠️ Socket not initialized");
       return;
-    }
+    } 
 
     socket.emit("register", currentUserId); // Register user ID with socket
 
