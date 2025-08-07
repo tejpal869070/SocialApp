@@ -186,7 +186,7 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
     bio,
     city,
     name,
-    interested_profile,
+    // interested_profile,
   } = profile;
 
   const details = [
@@ -222,19 +222,19 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
       iconType: "Ionicons",
       editable: false, // Changed to true
     },
-    {
-      label: "Interested In",
-      value:
-        interested_profile === "M"
-          ? "Male"
-          : interested_profile === "F"
-          ? "Female"
-          : "Trans",
-      field: "interested_profile",
-      icon: "clover",
-      iconType: "FontAwesome6",
-      editable: true,
-    },
+    // {
+    //   label: "Interested In",
+    //   value:
+    //     interested_profile === "M"
+    //       ? "Male"
+    //       : interested_profile === "F"
+    //       ? "Female"
+    //       : "Trans",
+    //   field: "interested_profile",
+    //   icon: "clover",
+    //   iconType: "FontAwesome6",
+    //   editable: true,
+    // },
     {
       label: "Phone",
       value: phone,

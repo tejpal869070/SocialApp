@@ -88,7 +88,7 @@ const ProfileScreen = ({ navigation }) => {
     dating_type: user?.dating_type || "",
     bio: user?.bio || "",
     name: user?.username || "User",
-    interested_profile: user?.interested_profile || "",
+    // interested_profile: user?.interested_profile || "",
   };
 
   if (loading) {

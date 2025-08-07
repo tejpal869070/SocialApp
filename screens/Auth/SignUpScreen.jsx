@@ -207,6 +207,11 @@ const SignUpScreen = ({ navigation }) => {
       await AsyncStorage.setItem("user_id", user_id);
       await AsyncStorage.setItem("email", email2);
 
+      // update city in asyncStorage
+      const storedCities = (await AsyncStorage.getItem("selectedCities")) || [];
+      const newCities = [...storedCities, city];
+      await AsyncStorage.setItem("selectedCities", JSON.stringify(newCities));
+
       setSuccess(true);
       // Reset form after successful registration
       resetForm();
@@ -748,9 +753,9 @@ const styles = StyleSheet.create({
   dobInput: {
     flex: 1,
     marginHorizontal: 5,
-    padding : 8,
-    height : 40,
-    textAlign : 'center',
+    padding: 8,
+    height: 40,
+    textAlign: "center",
   },
   genderContainer: {
     flexDirection: "row",
@@ -800,7 +805,7 @@ const styles = StyleSheet.create({
     // width: "40%",
     alignSelf: "center",
     marginBottom: 20,
-    paddingHorizontal : 20,
+    paddingHorizontal: 20,
   },
   backButton: {
     backgroundColor: "#666",

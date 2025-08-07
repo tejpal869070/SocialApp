@@ -30,7 +30,7 @@ import ProfileFilter from "../componentes/ProfileFilter";
 import crown from "../assets/photos/crown.png";
 import { CalculateAge } from "../controller/ReusableFunction";
 import { LinearGradient } from "expo-linear-gradient";
-import border1 from "../assets/photos/love-border.png";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import {
   GetFeedData,
   likeProfile,
@@ -525,7 +525,16 @@ const HomeScreen = ({ navigation }) => {
                             {", "}
                             {currentProfile.dob
                               ? CalculateAge(currentProfile.dob)
-                              : "N/A"}
+                              : "N/A"}{" "}
+                            {currentProfile.verified ? (
+                              <MaterialIcons
+                                name="verified"
+                                size={26}
+                                color="#ffffffff"
+                              />
+                            ) : (
+                              ""
+                            )}
                           </Text>
                           <Text style={styles.location}>
                             🏠 {currentProfile.city || "Not Disclosed"}

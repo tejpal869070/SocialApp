@@ -45,12 +45,18 @@ const LoginScreen = ({ navigation }) => {
 
     try {
       const response = await UserLogin(formData); 
-      const { token, email, user_id } = response; 
+      const { token, email, user_id , city } = response;  
 
       // Save token and email in AsyncStorage
       await AsyncStorage.setItem("token", token);
       await AsyncStorage.setItem("email", email); 
       await AsyncStorage.setItem("user_id", user_id);
+
+      // update city in asyncStorage
+      const storedCities  = await AsyncStorage.getItem("selectedCities") || [];
+      const newCities = [...storedCities, city];
+      await AsyncStorage.setItem("selectedCities", JSON.stringify(newCities));
+      
 
       // Initialize Socket.IO connection with token
       initializeSocket(token);

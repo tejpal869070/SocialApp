@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -6,38 +6,25 @@ import {
   Modal,
   StyleSheet,
   Switch,
+  TextInput,
+  FlatList,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import Slider from "@react-native-community/slider";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Dropdown } from "react-native-element-dropdown";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { GetCities } from "../controller/UserController";
 
 export default function FilterScreen() {
   const [modalVisible, setModalVisible] = useState(false);
-  const [distance, setDistance] = useState(80);
-  const [showFurther, setShowFurther] = useState(true);
-  const [ageRange, setAgeRange] = useState([18, 40]);
   const [showOutOfRange, setShowOutOfRange] = useState(false);
-  const [interested, setInterested] = React.useState(null);
-
-  const CITIES = [
-    "Jaipur",
-    "Delhi",
-    "Udaipur",
-    "Jodhpur",
-    "Ajmer",
-    "Pune",
-    "Mumbai",
-    "Nagaur",
-    "Kota",
-    "Bikaner",
-    "Kolkata",
-    "Ganganagar",
-    "South",
-    "North",
-    "East",
-    "West",
-  ];
+  const [interested, setInterested] = useState(null);
+  const [cities, setCities] = useState([]); // Initially empty
+  const [addCityModalVisible, setAddCityModalVisible] = useState(false);
+  const [cityInput, setCityInput] = useState("");
+  const [suggestedCities, setSuggestedCities] = useState([]);
+  const [availableCities, setAvailableCities] = useState([]); // Store all available cities for suggestions
 
   const genderOptions = [
     { label: "Male", value: "Male" },
@@ -47,9 +34,66 @@ export default function FilterScreen() {
     { label: "Both", value: "Both" },
   ];
 
-  const handleSelect = (gender) => {
-    setSelectedGender(gender);
-    setModalVisible(false);
+  const fetchCities = async () => {
+    try {
+      const arr = await GetCities();
+      const formattedCities = arr.map((c) => ({ label: c.name, value: c.id }));
+      setAvailableCities(formattedCities);   
+    } catch (e) {
+      console.log("Error fetching cities:", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchCities();
+  }, []);
+
+  const handleCityInputChange = (text) => {
+    setCityInput(text);
+    if (text.length > 0) {
+      const filteredCities = availableCities
+        .filter((city) => city.label.toLowerCase().includes(text.toLowerCase()))
+        .slice(0, 6);
+      setSuggestedCities(filteredCities);
+    } else {
+      setSuggestedCities([]);
+    }
+  };
+
+  const saveCitiesToStorage = async (updatedCities) => {
+    try {
+      await AsyncStorage.setItem(
+        "selectedCities",
+        JSON.stringify(updatedCities)
+      );
+      console.log("Saved cities to AsyncStorage:", updatedCities);
+    } catch (e) {
+      console.log("Error saving cities to AsyncStorage:", e);
+    }
+  };
+
+  const handleCitySelect = (city) => {
+    setCityInput("");
+    setSuggestedCities([]);
+    setAddCityModalVisible(false);
+    setCities((prevCities) => {
+      const updatedCities = [...prevCities, city];
+      console.log("Updated cities list:", updatedCities);
+      saveCitiesToStorage(updatedCities);
+      return updatedCities;
+    });
+  };
+
+  const handleRemoveCity = (cityToRemove) => {
+    setCities((prevCities) => {
+      const updatedCities = prevCities.filter(
+        (city) => city.value !== cityToRemove.value
+      );
+      console.log("Removed city:", cityToRemove);
+      console.log("Updated cities list:", updatedCities);
+      saveCitiesToStorage(updatedCities);
+      return updatedCities;
+    });
   };
 
   return (
@@ -81,45 +125,38 @@ export default function FilterScreen() {
             {/* Location */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Location</Text>
-              <View style={styles.row}>
+              <ScrollView style={styles.citiesContainer}>
                 <View style={styles.cities}>
-                  {CITIES.map((city, index) => (
-                    <Text key={index} style={styles.optionText}>
-                      {city}
-                    </Text>
-                  ))}
+                  {cities.length === 0 ? (
+                    <Text style={styles.noCitiesText}>No cities selected</Text>
+                  ) : (
+                    cities.map((city, index) => (
+                      <View key={index} style={styles.cityItem}>
+                        <Text style={styles.optionText}>{city.label}</Text>
+                        <TouchableOpacity
+                          onPress={() => handleRemoveCity(city)}
+                          style={styles.removeButton}
+                        >
+                          <Ionicons
+                            name="close-circle"
+                            size={20}
+                            color="#FF3E55"
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    ))
+                  )}
                 </View>
-              </View>
-              <TouchableOpacity>
+              </ScrollView>
+              <TouchableOpacity onPress={() => setAddCityModalVisible(true)}>
                 <Text style={styles.linkText}>Add a new location</Text>
               </TouchableOpacity>
-            </View>
-
-            {/* Age Range */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Age range</Text>
-              <Text style={styles.sliderValue}>
-                {ageRange[0]} - {ageRange[1]}
-              </Text>
-              <Slider
-                style={styles.slider}
-                minimumValue={18}
-                maximumValue={100}
-                value={ageRange[1]}
-                onValueChange={(value) =>
-                  setAgeRange([ageRange[0], Math.round(value)])
-                }
-                minimumTrackTintColor="#FF3E55"
-                maximumTrackTintColor="#D3D3D3"
-                thumbTintColor="#FF3E55"
-              />
             </View>
 
             <View style={styles.prefrenceContainer}>
               <Text style={[styles.prefrenceTitle, { width: "50%" }]}>
                 Interested In
               </Text>
-
               <Dropdown
                 style={[styles.dropdown, { width: "50%" }]}
                 data={genderOptions}
@@ -129,6 +166,7 @@ export default function FilterScreen() {
                 value={interested}
                 onChange={(item) => {
                   setInterested(item);
+                  console.log("Selected gender:", item);
                 }}
               />
             </View>
@@ -140,11 +178,54 @@ export default function FilterScreen() {
               <Switch
                 style={styles.prefrenceSwitch}
                 value={showOutOfRange}
-                onValueChange={setShowOutOfRange}
+                onValueChange={(value) => {
+                  setShowOutOfRange(value);
+                  console.log("Show verified profiles:", value);
+                }}
                 trackColor={{ false: "#D3D3D3", true: "#FF3E55" }}
                 thumbColor={showOutOfRange ? "#FFFFFF" : "#FFFFFF"}
               />
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Add City Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={addCityModalVisible}
+        onRequestClose={() => setAddCityModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setAddCityModalVisible(false)}>
+                <Ionicons name="close" size={24} color="black" />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Add New City</Text>
+            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter city name"
+              value={cityInput}
+              onChangeText={handleCityInputChange}
+            />
+            {suggestedCities.length > 0 && (
+              <FlatList
+                data={suggestedCities}
+                keyExtractor={(item) => item.value.toString()}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.suggestionItem}
+                    onPress={() => handleCitySelect(item)}
+                  >
+                    <Text style={styles.suggestionText}>{item.label}</Text>
+                  </TouchableOpacity>
+                )}
+                style={styles.suggestionList}
+              />
+            )}
           </View>
         </View>
       </Modal>
@@ -177,8 +258,8 @@ const styles = StyleSheet.create({
     height: 60,
     backgroundColor: "#f9f9f9",
     marginBottom: 10,
-    borderRadius : 8,
-    paddingHorizontal :4
+    borderRadius: 8,
+    paddingHorizontal: 4,
   },
   prefrenceTitle: {
     width: "70%",
