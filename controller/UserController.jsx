@@ -5,7 +5,7 @@ import { Platform } from "react-native";
 
 // user register
 export const UserRegister = async (formData) => {
-  console.log(formData)
+  console.log(formData);
   const response = await axios.post(`${API.api_url}user/register`, formData);
   return response.data;
 };
@@ -40,16 +40,29 @@ export const UserDetails = async () => {
 export const GetFeedData = async (page) => {
   const token = await AsyncStorage.getItem("token");
   const email = await AsyncStorage.getItem("email");
-  const city = await AsyncStorage.getItem("city");
+  const selectedCities = await AsyncStorage.getItem("selectedCities");
+  const showVerifiedProfiles = await AsyncStorage.getItem("showOutOfRange");
+  const interestedIn = await AsyncStorage.getItem("interested");
+
   const axiosConfig = {
     headers: {
       Authorization: `Bearer ${token}`,
     },
   };
+
   const data_to_send = {
     page: page,
     email: email,
-    city : city || "",
+    cities: selectedCities
+      ? JSON.parse(selectedCities).map((city) => city.label)
+      : [],
+    show_verified_profiles: showVerifiedProfiles
+      ? JSON.parse(showVerifiedProfiles)
+      : false,
+    interested_in:
+      interestedIn && JSON.parse(interestedIn)?.value
+        ? JSON.parse(interestedIn).value.charAt(0)
+        : "",
   };
 
   const response = await axios.post(
@@ -57,6 +70,7 @@ export const GetFeedData = async (page) => {
     data_to_send,
     axiosConfig
   );
+  console.log("data_to_send", data_to_send);
   return response.data;
 };
 
@@ -116,7 +130,7 @@ export const ForgetPassword = async (email, password, token) => {
 // token check
 export const CheckToken = async (token) => {
   try {
-    const email = await AsyncStorage.getItem("email"); 
+    const email = await AsyncStorage.getItem("email");
     const axiosConfig = {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -126,7 +140,7 @@ export const CheckToken = async (token) => {
       email: email,
     };
 
-    console.log("first", email, token)
+    console.log("first", email, token);
     const response = await axios.post(
       `${API.api_url}user/token-check`,
       data_to_send,
@@ -426,6 +440,50 @@ export const getAllWithinCitiesTrips = async (page) => {
   };
   const response = await axios.post(
     `${API.api_url}user/get-all-city-trip`,
+    data_to_send,
+    axiosConfig
+  );
+  return response.data;
+};
+
+// get all my trips
+export const getAllMyTrips = async (page) => {
+  const token = await AsyncStorage.getItem("token");
+  const email = await AsyncStorage.getItem("email");
+
+  const data_to_send = {
+    email: email,
+    page: page,
+  };
+  const axiosConfig = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+  const response = await axios.post(
+    `${API.api_url}user/get-travel-details`,
+    data_to_send,
+    axiosConfig
+  );
+  return response.data;
+};
+
+// delete my trip
+export const deleteMyTripsDetail = async (id) => {
+  const token = await AsyncStorage.getItem("token");
+  const email = await AsyncStorage.getItem("email");
+
+  const data_to_send = {
+    email: email,
+    id: id,
+  };
+  const axiosConfig = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+  const response = await axios.post(
+    `${API.api_url}user/delete-travel-details`,
     data_to_send,
     axiosConfig
   );

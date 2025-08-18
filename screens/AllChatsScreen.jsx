@@ -8,13 +8,13 @@ import {
   StyleSheet,
   TextInput,
   ActivityIndicator,
-  Pressable, 
+  Pressable,
   Alert,
   Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
-import { Vibration } from "react-native"; // Use react-native Vibration
+import { Vibration } from "react-native";
 import {
   getAllMessageRequest,
   updateMessageRequests,
@@ -51,7 +51,7 @@ const AllChatsScreen = ({ navigation }) => {
   const [success, setSuccess] = useState(false);
   const [deleteChatId, setDeleteChatId] = useState(null);
   const [recivingNudge, setRecivingNudge] = useState(false);
-  const [nudgeSender, setNudgeSender] = useState(""); // Store sender's username
+  const [nudgeSender, setNudgeSender] = useState("");
   const [currentUserId, setCurrentUserId] = useState(null);
 
   useEffect(() => {
@@ -67,7 +67,6 @@ const AllChatsScreen = ({ navigation }) => {
     fetchUserId();
   }, []);
 
-  // Callback to handle missing user details
   const fillMissingUserDetails = useCallback((user) => {
     return {
       ...defaultUser,
@@ -82,18 +81,15 @@ const AllChatsScreen = ({ navigation }) => {
     if (!socket) {
       console.warn("⚠️ Socket not initialized");
       return;
-    } 
+    }
+    console.log("Socket connected:", socket.connected); // Log connection status
 
-    socket.emit("register", currentUserId); // Register user ID with socket
-
-    // Listen for incoming nudge
     socket.on("receiveNudge", ({ from }) => {
-      console.log(`Received nudge from ${from} `);
+      console.log(`Received nudge from ${from}`);
       if (currentUserId && from !== currentUserId) {
-        // Ensure it's not the sender
-        setNudgeSender(senderUsername || "Someone");
-        setRecivingNudge(true);
-        Vibration.vibrate(3000); // Vibrate for 3 seconds
+        setNudgeSender(from);
+        setRecivingNudge(true); // Note: Typo in variable name
+        Vibration.vibrate(3000);
         setTimeout(() => {
           setRecivingNudge(false);
           setNudgeSender("");
@@ -101,7 +97,6 @@ const AllChatsScreen = ({ navigation }) => {
       }
     });
 
-    // Cleanup listener on unmount
     return () => {
       socket.off("receiveNudge");
     };
@@ -192,7 +187,6 @@ const AllChatsScreen = ({ navigation }) => {
     }
   };
 
-  // Handle chat deletion
   const handleDeleteChat = useCallback(async (other_user_id) => {
     const socket = getSocket();
     if (!socket?.connected) {
@@ -223,7 +217,6 @@ const AllChatsScreen = ({ navigation }) => {
     }
   }, []);
 
-  // Show delete confirmation popup
   const showDeleteConfirmation = (chatId) => {
     setDeleteChatId(chatId);
     Alert.alert(
@@ -245,7 +238,6 @@ const AllChatsScreen = ({ navigation }) => {
     );
   };
 
-  // Handle sending nudge
   const sendNudge = useCallback(
     (receiverId) => {
       const socket = getSocket();
@@ -258,15 +250,9 @@ const AllChatsScreen = ({ navigation }) => {
         return;
       }
 
-      // Find sender's username from inboxChats
-      const senderChat = inboxChats.find(
-        (chat) => chat.other_user_id === currentUserId
-      );
-      const senderUsername = senderChat?.username || "Unknown User";
-
       socket.emit(
         "sendNudge",
-        { senderId: currentUserId, receiverId, senderUsername },
+        { senderId: currentUserId, receiverId },
         (response) => {
           if (response?.status) {
             console.log(`Nudge sent to ${receiverId}`);
@@ -278,7 +264,7 @@ const AllChatsScreen = ({ navigation }) => {
         }
       );
     },
-    [currentUserId, inboxChats]
+    [currentUserId]
   );
 
   const renderChatItem = ({ item }) => {
@@ -328,12 +314,12 @@ const AllChatsScreen = ({ navigation }) => {
                 {item?.last_message_time?.split("T")[0]} {"   "}
                 {item?.last_message_time?.split("T")[1]?.slice(0, 5)}
               </Text>
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={styles.callButton}
                 onPress={() => sendNudge(item.other_user_id)}
               >
                 <Ionicons name="flash-outline" size={24} color="#e9e9e9ff" />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </>
           ) : (
             <View style={styles.requestButtons}>
@@ -372,13 +358,13 @@ const AllChatsScreen = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerText}>Chat</Text>
-        <View style={styles.searchContainer}>
+        {/* <View style={styles.searchContainer}>
           <TextInput
             placeholder="Search..."
             placeholderTextColor="#aaa"
             style={styles.searchInput}
           />
-        </View>
+        </View> */}
       </View>
 
       <View style={styles.tabContainer}>

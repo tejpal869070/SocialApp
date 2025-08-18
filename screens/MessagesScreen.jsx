@@ -21,7 +21,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getSocket } from "../controller/Socket";
 
 const MessageScreen = ({ navigation, route }) => {
-  const { user } = route.params;
+  const { user } = route.params; 
 
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
@@ -75,8 +75,7 @@ const MessageScreen = ({ navigation, route }) => {
       "getChats",
       { other_user_id: user.other_user_id, page: 1 },
       (response) => {
-        if (response.status === "success") {
-          console.log("this is", response?.data[response?.data?.length - 1]);
+        if (response.status === "success") { 
           const formatted = response.data.map((msg) => ({
             id: msg.id.toString(),
             text: msg.message,

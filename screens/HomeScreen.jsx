@@ -110,14 +110,12 @@ const HomeScreen = ({ navigation }) => {
     [pan.x]
   );
 
-  const loadProfiles = useCallback(async () => {
-    console.log("page", page);
+  const loadProfiles = useCallback(async () => { 
     if (loading || !hasMore) return;
 
     setLoading(true);
     try {
-      const newProfiles = await GetFeedData(page);
-      console.log("newProfiles", newProfiles.length);
+      const newProfiles = await GetFeedData(page); 
       if (newProfiles.length < 10) {
         setHasMore(false);
       }
@@ -147,25 +145,33 @@ const HomeScreen = ({ navigation }) => {
     }
   }, [currentProfileIndex, profiles.length, hasMore, loading, loadProfiles]);
 
-  // Refresh profiles when the Home tab is focused
-  useEffect(() => {
-    const unsubscribe = navigation.addListener("focus", async () => {
+  // Function to refresh profiles
+  const refreshProfiles = async () => {
+    try {
+      setLoading(true);
       setProfiles([]);
       setCurrentProfileIndex(0);
       setCurrentImageIndex(0);
       setPage(1);
       setHasMore(true);
-      setLoading(false);
 
       const newProfiles = await GetFeedData(1);
       if (newProfiles.length < 10) {
         setHasMore(false);
       }
-      await preloadImages(newProfiles);
+      await preloadImages(newProfiles); // Assuming preloadImages is defined
       setProfiles(newProfiles);
-      setPage(2); // next page to fetch
-    });
+      setPage(2); // Next page to fetch
+    } catch (error) {
+      console.log("Error fetching feed data:", error);
+      // Optionally show an error message to the user
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", refreshProfiles);
     return unsubscribe;
   }, [navigation]);
 
@@ -361,6 +367,11 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
+  // Handle filter changes from ProfileFilter
+  const handleFilterChange = () => {
+    refreshProfiles();
+  };
+
   useEffect(() => {
     checkUser();
   }, []);
@@ -400,7 +411,7 @@ const HomeScreen = ({ navigation }) => {
                 cachePolicy="memory-disk"
               />
             </Pressable>
-            <ProfileFilter />
+            <ProfileFilter onFilterChange={handleFilterChange} />
           </View>
 
           <LinearGradient

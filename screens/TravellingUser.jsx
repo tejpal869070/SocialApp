@@ -6,7 +6,6 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
-  TextInput,
   ActivityIndicator,
   RefreshControl,
   Pressable,
@@ -14,15 +13,18 @@ import {
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import AddTravelDetail from "../componentes/AddTravelDetail";
 import {
+  deleteMyTripsDetail,
   getAllBetweenCitiesTrips,
+  getAllMyTrips,
   getAllWithinCitiesTrips,
 } from "../controller/UserController";
 import { ImageBackground } from "react-native";
 import ProfilePopup from "../componentes/Profile/ProfilePopup";
 
-const UserCard = ({ user, isBetweenCities }) => {
+const UserCard = ({ user, isBetweenCities, navigation, self, onDelete }) => {
   const [showDetail, setShowDetail] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [loading, setLoading] = useState(false); // Loading state for deletion
 
   const toggleDetail = () => {
     setShowDetail((prev) => !prev);
@@ -35,18 +37,27 @@ const UserCard = ({ user, isBetweenCities }) => {
     to: user?.to_city || "N/A",
     date: user?.journey_date?.split("T")[0] || "N/A",
     detail: user?.description || "No details available",
+    id: user?.id,
+  };
+
+  const deleteMyTrip = async (item) => {
+    setLoading(true);
+    try {
+      await deleteMyTripsDetail(item.id);
+      // Optional: add some feedback or refresh list
+    } catch (error) {
+      console.error("Error deleting trip:", error);
+    } finally {
+      setLoading(false);
+      onDelete();
+    }
   };
 
   return (
     <View style={styles.card}>
       <View style={styles.userCard}>
         <View style={styles.profileContainer}>
-          <Pressable
-            onPress={() => {
-              setProfileOpen(true);
-              console.log("sdiuch");
-            }}
-          >
+          <Pressable onPress={() => setProfileOpen(true)}>
             <Image
               source={{ uri: safeUser.image }}
               style={styles.profileImage}
@@ -75,9 +86,26 @@ const UserCard = ({ user, isBetweenCities }) => {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.requestButton}>
-          <Text style={styles.requestButtonText}>Request</Text>
-        </TouchableOpacity>
+        {self ? (
+          <TouchableOpacity
+            style={styles.requestButton}
+            onPress={() => deleteMyTrip(safeUser)}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.requestButtonText}>Delete</Text>
+            )}
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.requestButton}
+            onPress={() => navigation.navigate("Messages", { user: user })}
+          >
+            <Text style={styles.requestButtonText}>Request</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <TouchableOpacity style={styles.detailButton} onPress={toggleDetail}>
@@ -100,17 +128,16 @@ const UserCard = ({ user, isBetweenCities }) => {
     </View>
   );
 };
-
-export default function TravellingUser() {
-  const [selectedCity, setSelectedCity] = useState("All Cities");
-  const [activeTab, setActiveTab] = useState("Cities");
+export default function TravellingUser({ navigation }) {
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState("Cities");
   const [page, setPage] = useState({ Cities: 1, Guider: 1 });
+  const [selectedCity, setSelectedCity] = useState("All Cities");
   const [hasMore, setHasMore] = useState({ Cities: true, Guider: true });
   const [loadedData, setLoadedData] = useState({ Cities: [], Guider: [] });
-  const [refreshing, setRefreshing] = useState(false); // For pull-to-refresh
 
   const fetchData = async (tab, page) => {
     setLoading(true);
@@ -121,6 +148,8 @@ export default function TravellingUser() {
         newUsers = await getAllBetweenCitiesTrips(page);
       } else if (tab === "Guider") {
         newUsers = await getAllWithinCitiesTrips(page);
+      } else if (tab === "Me") {
+        newUsers = await getAllMyTrips(page);
       }
 
       newUsers = Array.isArray(newUsers) ? newUsers : [];
@@ -217,7 +246,7 @@ export default function TravellingUser() {
     >
       <View style={styles.header}>
         <Text style={styles.headerText}>Find Your Travel Buddy</Text>
-        <View style={styles.searchContainer}>
+        {/* <View style={styles.searchContainer}>
           <TextInput
             placeholder="Search City..."
             placeholderTextColor="#aaa"
@@ -225,11 +254,11 @@ export default function TravellingUser() {
             onChangeText={(text) => setSelectedCity(text || "All Cities")}
             value={selectedCity === "All Cities" ? "" : selectedCity}
           />
-        </View>
+        </View> */}
       </View>
       {error && <Text style={styles.errorText}>{error}</Text>}
       <View style={styles.tabContainer}>
-        {["Cities", "Guider"].map((tab) => (
+        {["Cities", "Guider", "Me"].map((tab) => (
           <TouchableOpacity
             key={tab}
             style={[styles.tab, activeTab === tab && styles.activeTab]}
@@ -243,7 +272,11 @@ export default function TravellingUser() {
                 activeTab === tab && styles.activeTabText,
               ]}
             >
-              {tab === "Cities" ? "Between Cities" : "Guider/Turister"}
+              {tab === "Cities"
+                ? "Traveller"
+                : tab === "Guider"
+                ? "City"
+                : "My Post"}
             </Text>
           </TouchableOpacity>
         ))}
@@ -252,7 +285,13 @@ export default function TravellingUser() {
         data={users}
         keyExtractor={(item, index) => index}
         renderItem={({ item }) => (
-          <UserCard user={item} isBetweenCities={activeTab === "Cities"} />
+          <UserCard
+            user={item}
+            isBetweenCities={activeTab === "Cities"}
+            self={activeTab === "Me"}
+            navigation={navigation}
+            onDelete={() => handleRefresh()}
+          />
         )}
         ListEmptyComponent={
           <Text style={styles.emptyText}>No users found</Text>

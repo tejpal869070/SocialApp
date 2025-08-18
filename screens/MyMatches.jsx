@@ -255,13 +255,13 @@ const MyMatches = ({ navigation }) => {
       <View style={styles.header}>
         <Text style={styles.headerText}>Matches</Text>
         <View style={styles.searchContainer}>
-          <TextInput
+          {/* <TextInput
             placeholder="Search matches..."
             placeholderTextColor="#aaa"
             value={searchText}
             onChangeText={setSearchText}
             style={styles.searchInput}
-          />
+          /> */}
         </View>
       </View>
 
