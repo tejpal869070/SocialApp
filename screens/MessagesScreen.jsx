@@ -75,7 +75,7 @@ const MessageScreen = ({ navigation, route }) => {
       "getChats",
       { other_user_id: user.other_user_id, page: 1 },
       (response) => {
-        if (response.status === "success") { 
+        if (response.status === "success") {  
           const formatted = response.data.map((msg) => ({
             id: msg.id.toString(),
             text: msg.message,

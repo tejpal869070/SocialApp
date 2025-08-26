@@ -33,14 +33,12 @@ const calculateAge = (dob) => {
   const birthDate = new Date(dob);
   const age = new Date().getFullYear() - birthDate.getFullYear();
   const monthDifference = new Date().getMonth() - birthDate.getMonth();
-
   if (
     monthDifference < 0 ||
     (monthDifference === 0 && new Date().getDate() < birthDate.getDate())
   ) {
     return age - 1;
   }
-
   return age;
 };
 
@@ -49,13 +47,15 @@ const LikedByMeTab = ({ openProfile, searchText }) => {
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const didMountRef = useRef(false);
 
   const fetchLikedByMe = async (pageNum, isRefresh = false) => {
     if (isLoading || (!hasMore && !isRefresh)) return;
 
-    setIsLoading(true);
-    const data = await getLikedByMe(pageNum);
+    isRefresh ? setIsRefreshing(true) : setIsLoading(true);
+
+    const data = await getLikedByMe(pageNum); 
     const validData = data.filter(
       (item) => item && item.user_id && item.username && item.images
     );
@@ -63,7 +63,8 @@ const LikedByMeTab = ({ openProfile, searchText }) => {
       isRefresh ? validData : [...prev, ...validData]
     );
     setHasMore(data.length > 0);
-    setIsLoading(false);
+    setIsLoading(false); 
+    setIsRefreshing(false);
   };
 
   useEffect(() => {
@@ -73,9 +74,15 @@ const LikedByMeTab = ({ openProfile, searchText }) => {
     }
   }, []);
 
+  const onRefresh = () => {
+    setPage(1);
+    fetchLikedByMe(1, true);
+  };
+
   const filteredLikedByMe = likedByMeData.filter((match) =>
     match?.username?.toLowerCase().includes(searchText.toLowerCase())
   );
+ 
 
   const loadMore = () => {
     if (!isLoading && hasMore) {
@@ -121,6 +128,8 @@ const LikedByMeTab = ({ openProfile, searchText }) => {
       onEndReached={loadMore}
       onEndReachedThreshold={0.5}
       ListFooterComponent={renderFooter}
+      refreshing={isRefreshing}
+      onRefresh={onRefresh}
     />
   );
 };
@@ -130,12 +139,14 @@ const WhoLikedMeTab = ({ openProfile, searchText }) => {
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const didMountRef = useRef(false);
 
   const fetchWhoLikedMe = async (pageNum, isRefresh = false) => {
     if (isLoading || (!hasMore && !isRefresh)) return;
 
-    setIsLoading(true);
+    isRefresh ? setIsRefreshing(true) : setIsLoading(true);
+
     const data = await getWhoLikedMe(pageNum);
     const validData = data.filter(
       (item) => item && item.user_id && item.username && item.images
@@ -145,6 +156,7 @@ const WhoLikedMeTab = ({ openProfile, searchText }) => {
     );
     setHasMore(data.length > 0);
     setIsLoading(false);
+    setIsRefreshing(false);
   };
 
   useEffect(() => {
@@ -153,6 +165,11 @@ const WhoLikedMeTab = ({ openProfile, searchText }) => {
       didMountRef.current = true;
     }
   }, []);
+
+  const onRefresh = () => {
+    setPage(1);
+    fetchWhoLikedMe(1, true);
+  };
 
   const filteredWhoLikedMe = whoLikedMeData.filter((item) =>
     item?.username?.toLowerCase().includes(searchText.toLowerCase())
@@ -210,6 +227,8 @@ const WhoLikedMeTab = ({ openProfile, searchText }) => {
       onEndReached={loadMore}
       onEndReachedThreshold={0.5}
       ListFooterComponent={renderFooter}
+      refreshing={isRefreshing}
+      onRefresh={onRefresh}
     />
   );
 };
@@ -255,13 +274,7 @@ const MyMatches = ({ navigation }) => {
       <View style={styles.header}>
         <Text style={styles.headerText}>Matches</Text>
         <View style={styles.searchContainer}>
-          {/* <TextInput
-            placeholder="Search matches..."
-            placeholderTextColor="#aaa"
-            value={searchText}
-            onChangeText={setSearchText}
-            style={styles.searchInput}
-          /> */}
+          {/* Add search input if needed */}
         </View>
       </View>
 
@@ -377,6 +390,14 @@ const styles = StyleSheet.create({
   tabIndicator: {
     backgroundColor: "white",
     height: 2,
+  },
+  loader: {
+    marginVertical: 20,
+  },
+  noDataText: {
+    textAlign: "center",
+    padding: 10,
+    color: "#888",
   },
 });
 

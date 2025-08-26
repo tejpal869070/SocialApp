@@ -1,28 +1,28 @@
 import React, { useState, useEffect } from "react";
-import { NavigationContainer } from "@react-navigation/native";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import {
   createStackNavigator,
   TransitionPresets,
 } from "@react-navigation/stack";
-import { Ionicons } from "@expo/vector-icons";
-import StartScreen from "./screens/StartScreen";
-import LoginScreen from "./screens/Auth/LoginScreen";
-import SignUpScreen from "./screens/Auth/SignUpScreen";
-import ForgotPasswordScreen from "./screens/Auth/ForgotPasswordScreen";
-import HomeScreen from "./screens/HomeScreen";
-import ProfileScreen from "./screens/ProfileScreen";
-import MessagesScreen from "./screens/MessagesScreen";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { AuthProvider } from "./controller/context";
-import AllChatsScreen from "./screens/AllChatsScreen";
 import MyMatches from "./screens/MyMatches";
-import TravellingUser from "./screens/TravellingUser";
+import { Ionicons } from "@expo/vector-icons";
+import HomeScreen from "./screens/HomeScreen";
+import StartScreen from "./screens/StartScreen";
 import PlansScreen from "./screens/PlansScreen";
+import ProfileScreen from "./screens/ProfileScreen";
+import { AuthProvider } from "./controller/context";
+import LoginScreen from "./screens/Auth/LoginScreen";
+import MessagesScreen from "./screens/MessagesScreen";
+import TravellingUser from "./screens/TravellingUser";
+import AllChatsScreen from "./screens/AllChatsScreen";
+import SignUpScreen from "./screens/Auth/SignUpScreen";
+import { NavigationContainer } from "@react-navigation/native";
 import ResetPasswordScreen from "./screens/Auth/ResetPasswordScreen";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import ForgotPasswordScreen from "./screens/Auth/ForgotPasswordScreen";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 
-const Tab = createBottomTabNavigator();
-const Stack = createStackNavigator();
+const Stack = createStackNavigator(); 
+const Tab = createBottomTabNavigator(); 
 
 function MainApp() {
   return (

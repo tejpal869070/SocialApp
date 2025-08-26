@@ -92,6 +92,15 @@ const SignUpScreen = ({ navigation }) => {
         setError("Please enter your city.");
         return;
       }
+
+      // Ensure city is from allCities
+      const cityMatch = allCities.find(
+        (c) => c.name.toLowerCase() === city.trim().toLowerCase()
+      );
+      if (!cityMatch) {
+        setError("Please select a valid city from the suggestions.");
+        return;
+      }
     }
 
     // Step 2: Validate Email and Mobile

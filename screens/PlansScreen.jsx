@@ -4,18 +4,38 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Image,
   ScrollView,
   SafeAreaView,
-  TextInput,
+  Dimensions,
+  Alert,
+  Modal,
 } from "react-native";
+import { WebView } from "react-native-webview"; // Import WebView from react-native-webview
+import { getAllPlans } from "../controller/UserController";
 
 const PlansScreen = ({ navigation }) => {
-  const plans = [
-    { duration: "12 Months", pricePerMonth: "₹305/mo", total: "₹3660" },
-    { duration: "6 Months", pricePerMonth: "₹375/mo", total: "₹2250" },
-    { duration: "1 Month", pricePerMonth: "₹499", total: "₹499" },
-  ];
+  const [plans, setPlans] = useState([]);
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [showWebView, setShowWebView] = useState(false);
+
+  // Fetch plans from API
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const response = await getAllPlans();
+        setPlans(response);
+      } catch (error) {
+        console.error("Error fetching plans:", error);
+        setPlans([
+          { plan_name: "12 Months", price: "305/mo", duration: "3660" },
+          { plan_name: "6 Months", price: "375/mo", duration: "2250" },
+          { plan_name: "1 Month", price: "499", duration: "499" },
+        ]);
+      }
+    };
+
+    fetchPlans();
+  }, []);
 
   const benefits = [
     {
@@ -45,26 +65,61 @@ const PlansScreen = ({ navigation }) => {
     },
   ];
 
+  // Handle plan selection
+  const handlePlanSelect = (plan) => {
+    setSelectedPlan(plan);
+  };
+
+  // Handle payment
+  const handleContinue = () => {
+    if (!selectedPlan) {
+      Alert.alert("Error", "Please select a plan before continuing.");
+      return;
+    }
+    setShowWebView(true); // Show WebView modal for payment
+  };
+
+  // Handle WebView navigation state changes
+  const handleWebViewNavigationStateChange = (navState) => {
+    const { url } = navState;
+    // Check for payment success/failure based on URL (customize based on your payment gateway)
+    if (url.includes("success")) {
+      Alert.alert("Success", "Payment completed successfully!");
+      setShowWebView(false);
+      // Optionally navigate to another screen
+      // navigation.navigate("Start");
+    } else if (url.includes("failure") || url.includes("cancel")) {
+      Alert.alert("Cancelled", "Payment was cancelled or failed.");
+      setShowWebView(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Text style={styles.headerText}>Unlock All function</Text>
-         
+        <Text style={styles.headerText}>Unlock All Features</Text>
       </View>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.plansContainer}>
           {plans.map((plan, index) => (
-            <View key={index} style={styles.planCard}>
-              <Text style={styles.planDuration}>{plan.duration}</Text>
-              <Text style={styles.planPricePerMonth}>{plan.pricePerMonth}</Text>
-              <Text style={styles.planTotal}>{plan.total}</Text>
-            </View>
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.planCard,
+                selectedPlan === plan ? styles.selectedPlanCard : null,
+              ]}
+              onPress={() => handlePlanSelect(plan)}
+            >
+              <Text style={styles.planDuration}>{plan.plan_name}</Text>
+              <Text style={styles.planPricePerMonth}>₹{plan.price}</Text>
+              <Text style={styles.planTotal}>{plan.duration} Days</Text>
+            </TouchableOpacity>
           ))}
         </View>
 
         <TouchableOpacity
           style={styles.continueButton}
-          onPress={() => navigation.navigate("Start")}
+          onPress={handleContinue}
         >
           <Text style={styles.continueText}>CONTINUE</Text>
         </TouchableOpacity>
@@ -83,6 +138,43 @@ const PlansScreen = ({ navigation }) => {
           ))}
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showWebView}
+        animationType="slide"
+        onRequestClose={() => setShowWebView(false)}
+      >
+        <SafeAreaView style={styles.webViewContainer}>
+          <View style={styles.webViewHeader}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowWebView(false)}
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+          <WebView
+            source={{ uri: "https://u.payu.in/Irm1keSgfyoW" }}
+            style={styles.webView}
+            onNavigationStateChange={handleWebViewNavigationStateChange}
+            onError={(syntheticEvent) => {
+              const { nativeEvent } = syntheticEvent;
+              console.error("WebView error: ", nativeEvent);
+              Alert.alert("Error", "Failed to load payment page.");
+              setShowWebView(false);
+            }}
+            onHttpError={(syntheticEvent) => {
+              const { nativeEvent } = syntheticEvent;
+              console.error("WebView HTTP error: ", nativeEvent);
+              Alert.alert(
+                "Error",
+                "Failed to load payment page due to HTTP error."
+              );
+              setShowWebView(false);
+            }}
+          />
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -95,32 +187,23 @@ const styles = StyleSheet.create({
   container: {
     alignItems: "center",
     paddingBottom: 20,
-    marginTop : 40
+    marginTop: 40,
   },
   header: {
-    alignItems: "center",
-    marginTop: 20,
+    backgroundColor: "#FF5555",
+    padding: 20,
+    paddingTop: 40,
   },
-  timerText: {
-    color: "#fff",
-    backgroundColor: "#ff9800",
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 10,
-  },
-  title: {
-    fontSize: 24,
+  headerText: {
+    fontSize: 20,
     fontWeight: "bold",
-    color: "#ff0000",
-    marginBottom: 10,
-  },
-  crownIcon: {
-    width: 40,
-    height: 40,
+    color: "#fff",
   },
   plansContainer: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "space-between",
+    width: "90%",
     gap: 6,
   },
   planCard: {
@@ -130,19 +213,30 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 15,
     alignItems: "center",
-    width: "30%",
+    width: Dimensions.get("window").width * 0.3 - 12,
+  },
+  selectedPlanCard: {
+    backgroundColor: "#e0f7fa", // Light cyan background for selected plan
+    borderColor: "#FF5555", // Distinct border color
+    borderWidth: 2,
+    shadowColor: "#000", // Add shadow for emphasis
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5, // For Android shadow
   },
   planDuration: {
     fontSize: 16,
     color: "#333",
   },
   planPricePerMonth: {
-    fontSize: 14,
+    fontSize: 18,
     color: "#666",
+    fontWeight: "600",
+    marginVertical: 5,
   },
   planTotal: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 15,
     color: "#333",
   },
   continueButton: {
@@ -191,23 +285,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#666",
   },
-  header: {
+  webViewContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  webViewHeader: {
+    padding: 10,
     backgroundColor: "#FF5555",
-    padding: 20,
-    paddingTop: 40,
+    alignItems: "flex-end",
   },
-  headerText: {
-    fontSize: 20,
-    fontWeight: "bold",
+  closeButton: {
+    padding: 10,
+  },
+  closeButtonText: {
     color: "#fff",
-  },
-  searchContainer: { marginTop: 10 },
-  searchInput: {
-    backgroundColor: "rgba(255,255,255,0.9)",
-    borderRadius: 25,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
     fontSize: 16,
+    fontWeight: "600",
+  },
+  webView: {
+    flex: 1,
   },
 });
 

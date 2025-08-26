@@ -110,12 +110,12 @@ const HomeScreen = ({ navigation }) => {
     [pan.x]
   );
 
-  const loadProfiles = useCallback(async () => { 
+  const loadProfiles = useCallback(async () => {
     if (loading || !hasMore) return;
 
     setLoading(true);
     try {
-      const newProfiles = await GetFeedData(page); 
+      const newProfiles = await GetFeedData(page);
       if (newProfiles.length < 10) {
         setHasMore(false);
       }
@@ -413,7 +413,6 @@ const HomeScreen = ({ navigation }) => {
             </Pressable>
             <ProfileFilter onFilterChange={handleFilterChange} />
           </View>
-
           <LinearGradient
             colors={["rgba(255, 99, 112, 1)", "rgba(0, 0, 0, 0.53)"]}
             start={{ x: 0.5, y: 1 }}
@@ -548,11 +547,11 @@ const HomeScreen = ({ navigation }) => {
                             )}
                           </Text>
                           <Text style={styles.location}>
-                            🏠 {currentProfile.city || "Not Disclosed"}
+                            📍{currentProfile.city || "Not Disclosed"}
                           </Text>
-                          <Text style={styles.location}>
+                          {/* <Text style={styles.location}>
                             💼 {currentProfile?.profession}
-                          </Text>
+                          </Text> */}
                         </LinearGradient>
                       </TouchableOpacity>
                     </Animated.View>

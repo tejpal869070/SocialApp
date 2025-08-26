@@ -1,5 +1,6 @@
 // socket.js
 import { io } from "socket.io-client";
+import { API } from "./Api";
 
 let socket = null;
 
@@ -8,7 +9,7 @@ export const initializeSocket = (token) => {
     socket.disconnect(); // Clean up old connection
   }
 
-  socket = io("http://192.168.29.173:3000", {
+  socket = io(`${API.api_url}`, {
     auth: { token },
     transports: ["websocket"],
     autoConnect: true,

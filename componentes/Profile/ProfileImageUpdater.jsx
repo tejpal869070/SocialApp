@@ -61,6 +61,7 @@ const ProfileImageUpdater = ({
     if (!result.canceled) {
       try {
         const response = await uploadImageToServer(result.assets[0].uri);
+        console.log( response?.data?.images[0])
         if (response?.data?.images && response?.data?.images.length > 0) {
           setImages((prevImages) => [...prevImages, response?.data?.images[0]]);
         }
@@ -71,14 +72,15 @@ const ProfileImageUpdater = ({
   };
 
   const handleDeleteImage = async (imageUrl) => {
+    console.log(`uploads/` + imageUrl?.split('/uploads/')[1])
     Alert.alert("Delete Image", "Are you sure you want to delete this image?", [
       { text: "Cancel", style: "cancel" },
-      {
+      { 
         text: "Delete",
         style: "destructive",
         onPress: async () => {
           try {
-            await deleteImageFromServer(imageUrl);
+            await deleteImageFromServer(`uploads/` + imageUrl?.split('/uploads/')[1]);
             setImages((prevImages) =>
               prevImages.filter((img) => img !== imageUrl)
             );

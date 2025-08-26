@@ -118,8 +118,7 @@ const AllChatsScreen = ({ navigation }) => {
           if (!Array.isArray(response.data)) {
             console.error("❌ Unexpected response:", response);
             return;
-          }
-
+          } 
           const filledData = response.data?.map(fillMissingUserDetails);
 
           setInboxChats((prev) =>

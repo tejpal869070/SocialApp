@@ -235,7 +235,7 @@ export const deleteImageFromServer = async (imgUrl) => {
 
   const axiosConfig = {
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${token}`, 
     },
   };
   const data_to_send = {
@@ -243,6 +243,7 @@ export const deleteImageFromServer = async (imgUrl) => {
     imagePath: imgUrl,
   };
 
+  console.log("sds", data_to_send);
   const response = await axios.post(
     `${API.api_url}user/delete-profile-image`,
     data_to_send,
@@ -484,6 +485,27 @@ export const deleteMyTripsDetail = async (id) => {
   };
   const response = await axios.post(
     `${API.api_url}user/delete-travel-details`,
+    data_to_send,
+    axiosConfig
+  );
+  return response.data;
+};
+
+// get-plan
+export const getAllPlans = async (id) => {
+  const token = await AsyncStorage.getItem("token");
+  const email = await AsyncStorage.getItem("email");
+
+  const data_to_send = {
+    email: email,
+  };
+  const axiosConfig = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+  const response = await axios.post(
+    `${API.api_url}user/get-plan`,
     data_to_send,
     axiosConfig
   );

@@ -57,7 +57,7 @@ const UserCard = ({ user, isBetweenCities, navigation, self, onDelete }) => {
     <View style={styles.card}>
       <View style={styles.userCard}>
         <View style={styles.profileContainer}>
-          <Pressable onPress={() => setProfileOpen(true)}>
+           <Pressable onPress={() => setProfileOpen(true)}>
             <Image
               source={{ uri: safeUser.image }}
               style={styles.profileImage}
