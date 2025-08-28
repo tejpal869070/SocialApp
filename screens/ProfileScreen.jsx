@@ -88,8 +88,10 @@ const ProfileScreen = ({ navigation }) => {
     dating_type: user?.dating_type || "",
     bio: user?.bio || "",
     name: user?.username || "User",
+    profile_type: user?.profile_type,
     // interested_profile: user?.interested_profile || "",
   };
+ 
 
   if (loading) {
     return (
@@ -201,7 +203,7 @@ const ProfileScreen = ({ navigation }) => {
                     color: "#fff",
                   }}
                 >
-                  Private
+                  Fake Profile
                 </Text>
                 <Switch
                   value={isPrivateProfile}

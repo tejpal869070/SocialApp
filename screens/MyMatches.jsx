@@ -111,7 +111,7 @@ const LikedByMeTab = ({ openProfile, searchText }) => {
     >
       <Image source={{ uri: item.images }} style={styles.matchImage} />
       <Text style={styles.matchName}>
-        {item.username || "Unknown"},{" "}
+        {item.username?.split(" ")[0] || "Unknown"},{" "}
         {item.dob ? calculateAge(item.dob) : "N/A"}
       </Text>
     </TouchableOpacity>

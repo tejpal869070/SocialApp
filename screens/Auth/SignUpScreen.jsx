@@ -258,7 +258,7 @@ const SignUpScreen = ({ navigation }) => {
   useEffect(() => {
     const fetchCities = async () => {
       try {
-        const response = await GetCities();
+        const response = await GetCities(); 
         setAllCities(response);
       } catch (error) {
         console.error("Failed to fetch cities:", error);

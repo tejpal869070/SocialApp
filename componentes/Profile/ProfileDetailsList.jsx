@@ -17,6 +17,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { changeUserDetails, GetCities } from "../../controller/UserController";
 import { SuccessPopup2 } from "../Popups";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 const editableFields = [
   "name",
@@ -27,11 +28,12 @@ const editableFields = [
   "drinking",
   "hobbies",
   "dating_type",
-  "city", 
+  "city",
   "interested_profile",
+  "dob",
 ];
 
-const ProfileDetailsList = ({ profile, refreshData }) => { 
+const ProfileDetailsList = ({ profile, refreshData }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedField, setSelectedField] = useState(null);
   const [inputValue, setInputValue] = useState("");
@@ -43,6 +45,17 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
   const [filteredCities, setFilteredCities] = useState([]);
   const [loadingCities, setLoadingCities] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [dateValue, setDateValue] = useState(new Date());
+
+  const get18YearsAgo = () => {
+    const today = new Date();
+    return new Date(
+      today.getFullYear() - 18,
+      today.getMonth(),
+      today.getDate()
+    );
+  };
 
   useEffect(() => {
     if (success) {
@@ -86,7 +99,13 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
   const openEditModal = (field, currentValue) => {
     console.log(currentValue);
     setSelectedField(field);
-    if (field === "hobbies" || field === "dating_type") {
+    if (field === "dob") {
+      setDateValue(currentValue ? new Date(currentValue) : new Date());
+      setShowDatePicker(true);
+      setSelectedField(field);
+      setModalVisible(true);
+      return;
+    } else if (field === "hobbies" || field === "dating_type") {
       setMultiItems(currentValue || []);
       setMultiInput("");
     } else if (field === "city") {
@@ -123,7 +142,9 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
     setIsSaving(true);
     let formattedValue;
 
-    if (selectedField === "gender") {
+    if (selectedField === "dob") {
+      formattedValue = dateValue.toISOString().split("T")[0];
+    } else if (selectedField === "gender") {
       formattedValue = inputValue === "Male" ? "M" : "F";
     } else if (selectedField === "city") {
       const cityObj = allCities.find(
@@ -186,6 +207,7 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
     bio,
     city,
     name,
+    profile_type,
     // interested_profile,
   } = profile;
 
@@ -212,7 +234,7 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
       field: "dob",
       icon: "calendar-outline",
       iconType: "Ionicons",
-      editable: false,
+      editable: profile_type === "fake" ? true : false,
     },
     {
       label: "Gender",
@@ -352,7 +374,11 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
                     />
                   )}
                   <View style={styles.textContainer}>
-                    <Text style={styles.label}>{item.label}</Text>
+                    {profile_type === "fake" && item.label === "Name" ? (
+                      <Text style={styles.label}>Fake Profile Name</Text>
+                    ) : (
+                      <Text style={styles.label}>{item.label}</Text>
+                    )}
                     <Text style={styles.value}>{item.value}</Text>
                   </View>
                   {item.editable && (
@@ -371,7 +397,6 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
             <Text style={styles.modalTitle}>
               Edit {selectedField?.replace(/_/g, " ")}
             </Text>
-
             {selectedField === "gender" && (
               <View style={styles.optionRow}>
                 {["Male", "Female"].map((option) => (
@@ -396,7 +421,6 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
                 ))}
               </View>
             )}
-
             {selectedField === "interested_profile" && (
               <View style={styles.optionRow}>
                 {["Female", "Male", "Trans"].map((option) => (
@@ -421,7 +445,6 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
                 ))}
               </View>
             )}
-
             {selectedField === "city" && (
               <>
                 <TextInput
@@ -456,7 +479,6 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
                 )}
               </>
             )}
-
             {(selectedField === "hobbies" ||
               selectedField === "dating_type") && (
               <>
@@ -495,7 +517,6 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
                 </View>
               </>
             )}
-
             {![
               "gender",
               "city",
@@ -509,6 +530,22 @@ const ProfileDetailsList = ({ profile, refreshData }) => {
                 onChangeText={setInputValue}
                 placeholder="Enter new value"
                 editable={!isSaving}
+              />
+            )}
+
+            {selectedField === "dob" && showDatePicker && (
+              <DateTimePicker
+                value={dateValue}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) => {
+                  setShowDatePicker(false);
+                  if (selectedDate) {
+                    setDateValue(selectedDate);
+                    setInputValue(selectedDate.toISOString().split("T")[0]);
+                  }
+                }}
+                maximumDate={get18YearsAgo()} // <-- Only allow 18+ DOB
               />
             )}
 
