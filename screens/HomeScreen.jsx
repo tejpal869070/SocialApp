@@ -17,6 +17,7 @@ import {
   ImageBackground,
   Pressable,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import {
   GestureHandlerRootView,
@@ -665,7 +666,8 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000", // Dark background like Tinder
+    backgroundColor: "#000",
+    backgroundColor: "#fff",
   },
   fullScreenContainer: {
     flex: 1,
@@ -715,9 +717,9 @@ const styles = StyleSheet.create({
     // borderRadius: 10,
     transform: [{ rotate: "20deg" }],
   },
-  travelers_mode_container: {
+  travelers_mode_container: { 
     position: "absolute",
-    top: 80,
+    top: 120,
     right: 10,
     flexDirection: "row",
     justifyContent: "space-between",
