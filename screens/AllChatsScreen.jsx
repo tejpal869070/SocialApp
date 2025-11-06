@@ -118,7 +118,7 @@ const AllChatsScreen = ({ navigation }) => {
           if (!Array.isArray(response.data)) {
             console.error("❌ Unexpected response:", response);
             return;
-          } 
+          }
           const filledData = response.data?.map(fillMissingUserDetails);
 
           setInboxChats((prev) =>
@@ -267,6 +267,7 @@ const AllChatsScreen = ({ navigation }) => {
   );
 
   const renderChatItem = ({ item }) => {
+    console.log(item);
     return (
       <Pressable
         style={styles.chatItem}
@@ -274,8 +275,8 @@ const AllChatsScreen = ({ navigation }) => {
       >
         <Pressable
           onPress={() => {
-            setOpenProfile(true);
             setUser_id(item.other_user_id);
+            setOpenProfile(true);
           }}
           onLongPress={() => showDeleteConfirmation(item.other_user_id)}
         >

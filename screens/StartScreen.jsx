@@ -46,7 +46,7 @@ export default function StartScreen() {
         source={require("../assets/photos/logo.png")}
         style={{ width: 100, height: 100 }}
       />
-      <Text style={styles.title}>FORTHOSE</Text>
+      <Text style={styles.title}>Crusha</Text>
       <ActivityIndicator size="large" color="#e91e63" style={styles.loader} />
     </ImageBackground>
   );
@@ -62,3 +62,4 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: "bold", marginTop: 20, color: "#333" },
   loader: { marginTop: 20 },
 });
+ 

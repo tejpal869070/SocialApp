@@ -1,43 +1,59 @@
 {
   "expo": {
-    "name": "SocialApp",
+    "name": "Crusha",
     "slug": "SocialApp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/crusha-logo.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/icon.png",
+      "image": "./assets/crusha.jpg",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app requires access to your camera to take photos and videos.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload and share photos.",
+        "NSLocationWhenInUseUsageDescription": "This app uses your location to show nearby users and improve recommendations."
+      }
     },
     "android": {
       "permissions": [
-        "VIBRATE"
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
       ],
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true,
       "package": "com.forthose08.SocialApp"
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
+    "adaptiveIcon": {
+      "foregroundImage": "./assets/crusha-logo.png",
+      "backgroundColor": "#ffffff"
     },
-    "plugins": [
-      "expo-router",
-      "expo-font"
-    ],
+    "edgeToEdgeEnabled": true,
+    "package": "com.forthose08.SocialApp",
     "extra": {
-      "router": {},
       "eas": {
         "projectId": "12529c76-2646-4fac-a9a3-ab991e6fcd17"
       }
     }
-  }
+  },
+  "web": {
+    "favicon": "./assets/crusha-logo.png"
+  },
+  "plugins": [
+    "expo-router",
+    "expo-font"
+  ],
+  "extra": {
+    "router": {},
+    "eas": {
+      "projectId": "12529c76-2646-4fac-a9a3-ab991e6fcd17"
+    }
+  },
+  "owner": "forthose08"
 }

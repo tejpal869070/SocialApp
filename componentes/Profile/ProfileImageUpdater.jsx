@@ -60,31 +60,33 @@ const ProfileImageUpdater = ({
 
     if (!result.canceled) {
       try {
-        const response = await uploadImageToServer(result.assets[0].uri);
-        console.log( response?.data?.images[0])
+        const response = await uploadImageToServer(result.assets[0].uri); 
         if (response?.data?.images && response?.data?.images.length > 0) {
-          setImages((prevImages) => [...prevImages, response?.data?.images[0]]);
+          setImages((prevImages) => [...prevImages, response?.data?.images[0]]); 
         }
       } catch (error) {
+        console.log(error)
         Alert.alert("Error", "Failed to upload image. Please try again.");
       }
     }
   };
 
   const handleDeleteImage = async (imageUrl) => {
-    console.log(`uploads/` + imageUrl?.split('/uploads/')[1])
     Alert.alert("Delete Image", "Are you sure you want to delete this image?", [
       { text: "Cancel", style: "cancel" },
-      { 
+      {
         text: "Delete",
         style: "destructive",
         onPress: async () => {
           try {
-            await deleteImageFromServer(`uploads/` + imageUrl?.split('/uploads/')[1]);
+            await deleteImageFromServer(
+              `uploads/` + imageUrl?.split("/uploads/")[1]
+            );
             setImages((prevImages) =>
               prevImages.filter((img) => img !== imageUrl)
             );
           } catch (error) {
+            console.log(error)
             Alert.alert("Error", "Failed to delete image. Please try again.");
           }
         },
@@ -123,7 +125,13 @@ const ProfileImageUpdater = ({
                 <Icon name="close" size={24} color="#fff" />
               </TouchableOpacity>
             </View>
-            <Text style={{ color: "#f6fd95ff", fontStyle : "italic", marginBottom :20 }}>
+            <Text
+              style={{
+                color: "#f6fd95ff",
+                fontStyle: "italic",
+                marginBottom: 20,
+              }}
+            >
               Atleast 1 photo is required
             </Text>
             <View style={styles.imageGrid}>

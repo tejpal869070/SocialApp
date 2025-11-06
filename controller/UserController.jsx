@@ -69,8 +69,7 @@ export const GetFeedData = async (page) => {
     `${API.api_url}user/get-feed-data`,
     data_to_send,
     axiosConfig
-  );
-  console.log("data_to_send", data_to_send);
+  ); 
   return response.data;
 };
 
@@ -242,8 +241,7 @@ export const deleteImageFromServer = async (imgUrl) => {
     email: email,
     imagePath: imgUrl,
   };
-
-  console.log("sds", data_to_send);
+ 
   const response = await axios.post(
     `${API.api_url}user/delete-profile-image`,
     data_to_send,

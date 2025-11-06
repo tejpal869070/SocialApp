@@ -89,12 +89,12 @@ const LoginScreen = ({ navigation }) => {
                 <Text style={styles.loginText}>Login</Text>
 
                 {/* Email Input */}
-                <Text style={styles.label}>Email</Text>
+                <Text style={styles.label}>Email Or Mobile</Text>
                 <TextInput
                   style={[styles.input]}
                   value={email}
                   onChangeText={setEmail}
-                  placeholder="Email"
+                  placeholder="Email or Mobile Number"
                   disabled={isLoading}
                   keyboardType="email-address"
                   placeholderTextColor="#999"

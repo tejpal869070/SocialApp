@@ -52,15 +52,9 @@ const SideNavBar = ({ navigation }) => {
         style={[styles.sidebar, { transform: [{ translateX: slideAnim }] }]}
       >
         {/* User Info */}
-        {/* <View style={styles.userInfo}>
-          <Ionicons name="person-circle-outline" size={55} color="#4a90e2" />
-          <View>
-            <Text style={styles.userId}>Tarun Soni</Text>
-            <Text style={styles.subId}>+91-8690708302</Text>
-          </View>
-        </View> */}
+      
 
-        <Text style={styles.logo}>ForThose</Text>
+        <Text style={styles.logo}>Crusha</Text>
 
         {/* Menu Items */}
         {menuItems.map((item, index) => (

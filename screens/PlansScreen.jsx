@@ -153,7 +153,7 @@ const PlansScreen = ({ navigation }) => {
               <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
-          <WebView
+          {/* <WebView
             source={{ uri: "https://u.payu.in/Irm1keSgfyoW" }}
             style={styles.webView}
             onNavigationStateChange={handleWebViewNavigationStateChange}
@@ -172,7 +172,7 @@ const PlansScreen = ({ navigation }) => {
               );
               setShowWebView(false);
             }}
-          />
+          /> */}
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
